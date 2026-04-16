@@ -268,58 +268,76 @@
   .meta { font-size: 12px; color: var(--text-muted); }
   .meta strong { color: var(--text); font-weight: 500; }
 
-  .flight-card.domestic { cursor: pointer; }
-  .flight-card.domestic:active { opacity: 0.85; }
+  .flight-card.expandable { cursor: pointer; }
+  .flight-card.expandable:active { opacity: 0.85; }
 
-  .expand-hint {
-    font-size: 11px;
-    color: var(--info-text);
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .expand-hint svg { transition: transform 0.2s; }
-  .expand-hint.open svg { transform: rotate(180deg); }
-
-  .dest-detail {
+  .expand-panel {
     margin-top: 10px;
     padding-top: 10px;
     border-top: 0.5px solid var(--border);
   }
 
-  .dest-detail-header {
+  .expand-section-title {
     font-size: 11px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-hint);
-    margin-bottom: 6px;
+    margin: 10px 0 6px;
   }
 
-  .dest-detail .time-dest-row { margin-bottom: 3px; }
-  .dest-detail .est-time { font-size: 17px; }
-  .dest-detail .sched-time.struck { font-size: 13px; }
+  .expand-section-title:first-child { margin-top: 0; }
 
-  .dest-loading {
-    font-size: 12px;
-    color: var(--text-muted);
-    padding: 4px 0;
-    display: flex;
-    align-items: center;
+  .live-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
   }
 
-  .mini-spinner {
-    display: inline-block;
-    width: 11px; height: 11px;
-    border: 1.5px solid var(--border);
-    border-top-color: var(--info-text);
+  .live-cell {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+  }
+
+  .live-cell-label {
+    font-size: 11px;
+    color: var(--text-hint);
+    margin-bottom: 2px;
+  }
+
+  .live-cell-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .live-cell-unit {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  .onground-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 5px 10px;
+    margin-bottom: 4px;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
     border-radius: 50%;
-    animation: spin 0.7s linear infinite;
     flex-shrink: 0;
   }
+
+  .dot-green { background: #4caf50; }
+  .dot-gray  { background: var(--text-hint); }
 
   .empty, .loading-msg {
     text-align: center;
@@ -359,6 +377,16 @@
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .mini-spinner {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--info-text);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -618,7 +646,7 @@ function renderFlights() {
     const isDomestic = domInt === 'D';
     const uid = f.getAttribute('uniqueID') || id;
 
-    html += `<div class="flight-card${isPast ? ' past' : ''}${isDomestic ? ' domestic' : ''}" id="card-${uid}"${isDomestic ? ` onclick="toggleDest('${uid}','${id}','${destCode}','${schedRaw}')"` : ''}>
+    html += `<div class="flight-card${isPast ? ' past' : ''} expandable" id="card-${uid}" onclick="toggleExpand('${uid}','${id}','${destCode}','${schedRaw}','${domInt}')">
       <div class="flight-top">
         <div class="flight-id">${id}</div>
         ${si ? `<span class="badge ${si.cls}">${si.label}</span>` : ''}
@@ -643,11 +671,11 @@ function renderFlights() {
         ${checkin ? `<span class="meta">Innsjekk <strong>${checkin}</strong></span>` : ''}
         ${belt    ? `<span class="meta">Bagasjebånd <strong>${belt}</strong></span>` : ''}
       </div>` : ''}
-      ${isDomestic ? `<div class="expand-hint" id="hint-${uid}">
+      <div class="expand-hint" id="hint-${uid}">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        ${currentDir === 'D' ? 'Vis ankomstinfo' : 'Vis avganginfo'}
+        <span>Mer info</span>
       </div>
-      <div class="dest-detail" id="dest-${uid}" style="display:none"></div>` : ''}
+      <div class="expand-panel" id="expand-${uid}" style="display:none"></div>
     </div>`;
   });
 
@@ -679,90 +707,140 @@ function statusInfo(code) {
   }[code] || { label: code, cls: 'badge-info' };
 }
 
-// ── Destination detail (lazy, cached) ────────────────────────────────────
-const destCache = {};
+// ── Expand panel (dest info + OpenSky) ───────────────────────────────────
+const expandCache = {};
 
-async function toggleDest(uid, flightId, destCode, schedRaw) {
-  const panel = document.getElementById(`dest-${uid}`);
+async function toggleExpand(uid, flightId, destCode, schedRaw, domInt) {
+  const panel = document.getElementById(`expand-${uid}`);
   const hint  = document.getElementById(`hint-${uid}`);
   if (!panel) return;
 
   const isOpen = panel.style.display !== 'none';
-
   if (isOpen) {
     panel.style.display = 'none';
     hint.classList.remove('open');
-    hint.querySelector('span') && (hint.querySelector('span').textContent =
-      currentDir === 'D' ? 'Vis ankomstinfo' : 'Vis avganginfo');
+    hint.querySelector('span').textContent = 'Mer info';
     return;
   }
 
   panel.style.display = 'block';
   hint.classList.add('open');
-  hint.querySelector('span') && (hint.querySelector('span').textContent =
-    currentDir === 'D' ? 'Skjul ankomstinfo' : 'Skjul avganginfo');
+  hint.querySelector('span').textContent = 'Skjul';
 
-  if (destCache[uid]) {
-    panel.innerHTML = destCache[uid];
+  if (expandCache[uid]) {
+    panel.innerHTML = expandCache[uid];
     return;
   }
 
-  panel.innerHTML = '<div class="dest-loading"><span class="mini-spinner"></span>Henter…</div>';
+  panel.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;display:flex;align-items:center;gap:6px"><span class="mini-spinner"></span>Henter data…</div>';
 
+  const [destHtml, skyHtml] = await Promise.all([
+    domInt === 'D' ? fetchDestHtml(flightId, destCode) : Promise.resolve(''),
+    fetchOpenSkyHtml(flightId),
+  ]);
+
+  const html = [destHtml, skyHtml].filter(Boolean).join('') ||
+    '<div style="font-size:12px;color:var(--text-muted)">Ingen tilleggsdata tilgjengelig</div>';
+
+  expandCache[uid] = html;
+  panel.innerHTML = html;
+}
+
+async function fetchDestHtml(flightId, destCode) {
   try {
-    // For a departure we want the arrival at dest; for arrival we want departure from dest
     const otherDir = currentDir === 'D' ? 'A' : 'D';
-    const qs = `/XmlFeed/v1.0?airport=${destCode}&TimeFrom=4&TimeTo=25&direction=${otherDir}`;
-    const xml = await fetchXML(qs);
-    const flights = [...xml.querySelectorAll('flight')];
-
-    // Match by flight_id (strip spaces for safety)
-    const match = flights.find(f =>
+    const xml = await fetchXML(`/XmlFeed/v1.0?airport=${destCode}&TimeFrom=4&TimeTo=25&direction=${otherDir}`);
+    const match = [...xml.querySelectorAll('flight')].find(f =>
       (f.querySelector('flight_id')?.textContent || '').trim() === flightId.trim()
     );
+    if (!match) return '';
 
-    if (!match) {
-      destCache[uid] = `<div style="font-size:12px;color:var(--text-muted)">Ingen data funnet for ${destCode}</div>`;
-      panel.innerHTML = destCache[uid];
-      return;
-    }
+    const destName   = airportNames[destCode] || destCode;
+    const label      = currentDir === 'D' ? `Ankomst ${destName}` : `Avgang fra ${destName}`;
+    const otherSched = utcToLocal(match.querySelector('schedule_time')?.textContent);
+    const otherSEl   = match.querySelector('status');
+    const otherScode = otherSEl?.getAttribute('code') || '';
+    const otherStime = otherSEl?.getAttribute('time') ? utcToLocal(otherSEl.getAttribute('time')) : '';
+    const otherGate  = match.querySelector('gate')?.textContent || '';
+    const otherBelt  = match.querySelector('belt_number')?.textContent || '';
+    const otherCheckin = match.querySelector('check_in')?.textContent || '';
+    const otherSi    = otherScode ? statusInfo(otherScode) : null;
+    const hasMeta    = otherGate || otherBelt || otherCheckin;
 
-    const destAirportCode = document.getElementById('airportSel').value;
-    const destAirportName = airportNames[destCode] || destCode;
-    const otherSched  = utcToLocal(match.querySelector('schedule_time')?.textContent);
-    const otherStatus = match.querySelector('status');
-    const otherScode  = otherStatus?.getAttribute('code') || '';
-    const otherStime  = otherStatus?.getAttribute('time') ? utcToLocal(otherStatus.getAttribute('time')) : '';
-    const otherGate   = match.querySelector('gate')?.textContent || '';
-    const otherBelt   = match.querySelector('belt_number')?.textContent || '';
-    const otherCheckin= match.querySelector('check_in')?.textContent || '';
-    const otherSi     = otherScode ? statusInfo(otherScode) : null;
-    const hasMeta     = otherGate || otherBelt || otherCheckin;
-    const label       = currentDir === 'D' ? `Ankomst ${destAirportName}` : `Avgang fra ${destAirportName}`;
-
-    let html = `<div class="dest-detail-header">${label}</div>`;
-    html += `<div class="time-dest-row">
+    let html = `<div class="expand-section-title">${label}</div>`;
+    html += `<div class="time-dest-row" style="margin-bottom:4px">
       <div class="time-block">
         ${otherStime && otherStime !== otherSched
           ? `<span class="sched-time struck">${otherSched}</span><span class="est-time">${otherStime}</span>`
-          : `<span class="sched-time">${otherSched}</span>`}
-        ${otherSi ? `<span class="badge ${otherSi.cls}" style="margin-left:4px">${otherSi.label}</span>` : ''}
+          : `<span class="sched-time" style="font-size:17px">${otherSched}</span>`}
+        ${otherSi ? `<span class="badge ${otherSi.cls}" style="margin-left:6px">${otherSi.label}</span>` : ''}
       </div>
     </div>`;
     if (hasMeta) {
-      html += `<div class="meta-row" style="border-top:none;padding-top:0;margin-top:4px">
+      html += `<div class="meta-row" style="border-top:none;padding-top:0;margin-top:2px">
         ${otherGate    ? `<span class="meta">Gate <strong>${otherGate}</strong></span>` : ''}
         ${otherCheckin ? `<span class="meta">Innsjekk <strong>${otherCheckin}</strong></span>` : ''}
         ${otherBelt    ? `<span class="meta">Bagasjebånd <strong>${otherBelt}</strong></span>` : ''}
       </div>`;
     }
+    return html;
+  } catch(e) { return ''; }
+}
 
-    destCache[uid] = html;
-    panel.innerHTML = html;
+async function fetchOpenSkyHtml(flightId) {
+  try {
+    const callsign = flightId.replace(/\s+/g, '').toUpperCase().padEnd(8).substring(0, 8);
+    const url = `https://opensky-network.org/api/states/all?callsign=${encodeURIComponent(callsign.trim())}`;
+    const res = await fetch(url);
+    if (!res.ok) return '';
+    const data = await res.json();
 
-  } catch(e) {
-    panel.innerHTML = `<div style="font-size:12px;color:var(--danger-text)">Kunne ikke hente data</div>`;
-  }
+    const states = data.states;
+    if (!states || !states.length) {
+      return `<div class="expand-section-title">Live posisjon</div>
+        <div class="onground-badge"><span class="dot dot-gray"></span>Ikke i lufta akkurat nå</div>`;
+    }
+
+    const s = states[0];
+    // OpenSky state vector fields:
+    // [icao24, callsign, origin_country, time_position, last_contact,
+    //  longitude, latitude, baro_altitude, on_ground, velocity,
+    //  true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source]
+    const onGround     = s[8];
+    const velocity     = s[9] != null ? Math.round(s[9] * 3.6) : null;   // m/s → km/t
+    const baroAlt      = s[7] != null ? Math.round(s[7]) : null;          // meter
+    const geoAlt       = s[13] != null ? Math.round(s[13]) : null;
+    const altitude     = geoAlt ?? baroAlt;
+    const altFt        = altitude != null ? Math.round(altitude * 3.281) : null;
+    const track        = s[10] != null ? Math.round(s[10]) : null;
+    const vertRate     = s[11] != null ? Math.round(s[11]) : null;
+    const country      = s[2] || '';
+
+    const compassDir = track != null ? trackToCompass(track) : null;
+    const vertLabel  = vertRate != null
+      ? (vertRate > 1 ? `↑ stiger` : vertRate < -1 ? `↓ synker` : `→ cruiser`)
+      : null;
+
+    if (onGround) {
+      return `<div class="expand-section-title">Live posisjon</div>
+        <div class="onground-badge"><span class="dot dot-gray"></span>På bakken (${country})</div>`;
+    }
+
+    let html = `<div class="expand-section-title">Live posisjon <span style="font-size:10px;color:var(--text-hint);font-weight:400;text-transform:none;letter-spacing:0">(OpenSky)</span></div>`;
+    html += `<div class="onground-badge" style="margin-bottom:8px"><span class="dot dot-green"></span>I lufta — ${country}</div>`;
+    html += `<div class="live-grid">`;
+    if (altitude != null) html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt != null ? altFt.toLocaleString('nb-NO') : '—'}<span class="live-cell-unit">fot</span></div></div>`;
+    if (velocity != null) html += `<div class="live-cell"><div class="live-cell-label">Hastighet</div><div class="live-cell-value">${velocity}<span class="live-cell-unit">km/t</span></div></div>`;
+    if (compassDir)       html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
+    if (vertLabel)        html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:13px">${vertLabel}</div></div>`;
+    html += `</div>`;
+    return html;
+  } catch(e) { return ''; }
+}
+
+function trackToCompass(deg) {
+  const dirs = ['N','NØ','Ø','SØ','S','SV','V','NV'];
+  return dirs[Math.round(deg / 45) % 8];
 }
 
 boot();
