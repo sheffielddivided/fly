@@ -950,7 +950,6 @@ async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw) {
     const fromCoords = AIRPORT_COORDS[fromCode];
     const toCoords   = AIRPORT_COORDS[toCode];
     if (!fromCoords || !toCoords || !schedRaw) return '';
-    // Typisk cruisehastighet ~850 km/t
     const totalKm  = haversineKm(...fromCoords, ...toCoords);
     const depMs    = new Date(schedRaw).getTime();
     const elapsedH = (Date.now() - depMs) / 3600000;
@@ -964,69 +963,71 @@ async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw) {
   }
 
   try {
-    const callsign = flightId.replace(/\s+/g, '').toUpperCase().padEnd(8).substring(0, 8);
-    const url = `${PROXY}/opensky/states/all?callsign=${encodeURIComponent(callsign.trim())}`;
+    // adsb.lol: /v2/callsign/{callsign}
+    const callsign = flightId.replace(/\s+/g, '').toUpperCase();
+    const url = `${PROXY}/adsb/callsign/${encodeURIComponent(callsign)}`;
     const res = await fetch(url);
 
-    // Hvis OpenSky er utilgjengelig, fall tilbake på tidsbasert
     if (!res.ok) return timeBasedProgress();
 
     const data = await res.json();
-    const states = data.states;
-
-    if (!states || !states.length) {
-      // Fly på bakken eller ikke funnet — vis tidsbasert hvis avgang er passert
+    // adsb.lol returns { ac: [ {...}, ... ] }
+    const ac = data.ac;
+    if (!ac || !ac.length) {
       const depMs = new Date(schedRaw).getTime();
       if (Date.now() > depMs) return timeBasedProgress();
       return `<div class="expand-section-title">Live posisjon</div>
         <div class="onground-badge"><span class="dot dot-gray"></span>Ikke i lufta ennå</div>`;
     }
 
-    const s          = states[0];
-    const onGround   = s[8];
-    const lat        = s[6];
-    const lon        = s[5];
-    const velocity   = s[9] != null ? Math.round(s[9] * 3.6) : null;
-    const baroAlt    = s[7] != null ? Math.round(s[7]) : null;
-    const geoAlt     = s[13] != null ? Math.round(s[13]) : null;
-    const altitude   = geoAlt ?? baroAlt;
-    const altFt      = altitude != null ? Math.round(altitude * 3.281) : null;
-    const track      = s[10] != null ? Math.round(s[10]) : null;
-    const vertRate   = s[11] != null ? Math.round(s[11]) : null;
-    const country    = s[2] || '';
+    const s = ac[0];
+    // adsb.lol fields: lat, lon, alt_baro, alt_geom, gs (ground speed knots),
+    // track, baro_rate, flight, type, r (registration), t (aircraft type)
+    const onGround  = s.alt_baro === 'ground' || s.gs < 50;
+    const lat       = s.lat;
+    const lon       = s.lon;
+    const altFt     = typeof s.alt_geom === 'number' ? Math.round(s.alt_geom)
+                    : typeof s.alt_baro === 'number' ? Math.round(s.alt_baro) : null;
+    const gsKnots   = s.gs;
+    const velocity  = gsKnots != null ? Math.round(gsKnots * 1.852) : null; // knots → km/t
+    const track     = s.track != null ? Math.round(s.track) : null;
+    const baroRate  = s.baro_rate;
+    const acType    = s.t || '';
+    const reg       = s.r || '';
+
     const compassDir = track != null ? trackToCompass(track) : null;
-    const vertLabel  = vertRate != null
-      ? (vertRate > 1 ? '↑ stiger' : vertRate < -1 ? '↓ synker' : '→ cruiser')
+    const vertLabel  = baroRate != null
+      ? (baroRate > 64 ? '↑ stiger' : baroRate < -64 ? '↓ synker' : '→ cruiser')
       : null;
 
     if (onGround) {
       return `<div class="expand-section-title">Live posisjon</div>
-        <div class="onground-badge"><span class="dot dot-gray"></span>På bakken (${country})</div>`;
+        <div class="onground-badge"><span class="dot dot-gray"></span>På bakken</div>`;
     }
 
-    // Beregn framdrift fra live-posisjon
+    // Framdrift fra live-posisjon
     let progressHtml = '';
     const fromCoords = AIRPORT_COORDS[fromCode];
     const toCoords   = AIRPORT_COORDS[toCode];
     if (fromCoords && toCoords && lat != null && lon != null) {
-      const totalKm  = haversineKm(...fromCoords, ...toCoords);
-      const doneKm   = haversineKm(fromCoords[0], fromCoords[1], lat, lon);
-      const pct      = Math.min(100, (doneKm / totalKm) * 100);
-      const remKm    = Math.max(0, totalKm - doneKm);
-      const etaStr   = velocity && velocity > 100
+      const totalKm = haversineKm(...fromCoords, ...toCoords);
+      const doneKm  = haversineKm(fromCoords[0], fromCoords[1], lat, lon);
+      const pct     = Math.min(100, (doneKm / totalKm) * 100);
+      const remKm   = Math.max(0, totalKm - doneKm);
+      const etaStr  = velocity && velocity > 100
         ? new Date(Date.now() + (remKm / velocity) * 3600000)
             .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
         : null;
       progressHtml = progressBarHtml(pct, fromCode, toCode, etaStr);
     }
 
-    let html = `<div class="expand-section-title">Live posisjon <span style="font-size:10px;color:var(--text-hint);font-weight:400;text-transform:none;letter-spacing:0">(OpenSky)</span></div>`;
-    html += `<div class="onground-badge" style="margin-bottom:8px"><span class="dot dot-green"></span>I lufta — ${country}</div>`;
+    let html = `<div class="expand-section-title">Live posisjon <span style="font-size:10px;color:var(--text-hint);font-weight:400;text-transform:none;letter-spacing:0">(ADS-B)</span></div>`;
+    html += `<div class="onground-badge" style="margin-bottom:8px"><span class="dot dot-green"></span>I lufta${reg ? ` — ${reg}` : ''}${acType ? ` (${acType})` : ''}</div>`;
     html += `<div class="live-grid">`;
-    if (altitude != null) html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt != null ? altFt.toLocaleString('nb-NO') : '—'}<span class="live-cell-unit">fot</span></div></div>`;
+    if (altFt != null) html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt.toLocaleString('nb-NO')}<span class="live-cell-unit">fot</span></div></div>`;
     if (velocity != null) html += `<div class="live-cell"><div class="live-cell-label">Hastighet</div><div class="live-cell-value">${velocity}<span class="live-cell-unit">km/t</span></div></div>`;
-    if (compassDir)       html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
-    if (vertLabel)        html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:13px">${vertLabel}</div></div>`;
+    if (compassDir) html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
+    if (vertLabel)  html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:13px">${vertLabel}</div></div>`;
     html += `</div>`;
     html += progressHtml;
     return html;
