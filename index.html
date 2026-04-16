@@ -225,22 +225,35 @@
     margin-bottom: 6px;
   }
 
-  .time-row {
+  .time-dest-row {
     display: flex;
     align-items: baseline;
+    justify-content: space-between;
     gap: 8px;
     margin-bottom: 5px;
   }
 
+  .time-block {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   .sched-time { font-size: 20px; font-weight: 500; }
-  .est-time { font-size: 13px; color: var(--warning-text); }
+  .sched-time.struck {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-hint);
+    text-decoration: line-through;
+  }
+  .est-time { font-size: 20px; font-weight: 500; }
   .time-sep { font-size: 12px; color: var(--text-hint); }
 
   .dest-name { font-size: 14px; color: var(--text); margin-bottom: 2px; }
   .dest-code { color: var(--text-muted); font-size: 13px; }
 
   .via-row { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
-  .dom-row { font-size: 12px; color: var(--text-hint); }
 
   .meta-row {
     display: flex;
@@ -284,8 +297,9 @@
     margin-bottom: 6px;
   }
 
-  .dest-detail .time-row { margin-bottom: 3px; }
-  .dest-detail .sched-time { font-size: 17px; }
+  .dest-detail .time-dest-row { margin-bottom: 3px; }
+  .dest-detail .est-time { font-size: 17px; }
+  .dest-detail .sched-time.struck { font-size: 13px; }
 
   .dest-loading {
     font-size: 12px;
@@ -609,13 +623,15 @@ function renderFlights() {
         ${si ? `<span class="badge ${si.cls}">${si.label}</span>` : ''}
       </div>
       <div class="airline-name">${airName}</div>
-      <div class="time-row">
-        <span class="sched-time">${sched}</span>
-        ${stime && stime !== sched ? `<span class="time-sep">→</span><span class="est-time">${stime}</span>` : ''}
+      <div class="time-dest-row">
+        <div class="time-block">
+          ${stime && stime !== sched
+            ? `<span class="sched-time struck">${sched}</span><span class="est-time">${stime}</span>`
+            : `<span class="sched-time">${sched}</span>`}
+        </div>
+        <div class="dest-name">${destName} <span class="dest-code">(${destCode})</span></div>
       </div>
-      <div class="dest-name">${destName} <span class="dest-code">(${destCode})</span></div>
       ${viaNames ? `<div class="via-row">via ${viaNames}</div>` : ''}
-      <div class="dom-row">${domLabel(domInt)}</div>
       ${hasMeta ? `<div class="meta-row">
         ${gate    ? `<span class="meta">Gate <strong>${gate}</strong></span>` : ''}
         ${checkin ? `<span class="meta">Innsjekk <strong>${checkin}</strong></span>` : ''}
@@ -655,10 +671,6 @@ function statusInfo(code) {
     E: { label: 'Ny tid',     cls: 'badge-delayed' },
     N: { label: 'Ny info',    cls: 'badge-info' },
   }[code] || { label: code, cls: 'badge-info' };
-}
-
-function domLabel(v) {
-  return { D: 'Innenriks', I: 'Internasjonal', S: 'Schengen' }[v] || v || '';
 }
 
 // ── Destination detail (lazy, cached) ────────────────────────────────────
@@ -723,10 +735,13 @@ async function toggleDest(uid, flightId, destCode, schedRaw) {
     const label       = currentDir === 'D' ? `Ankomst ${destAirportName}` : `Avgang fra ${destAirportName}`;
 
     let html = `<div class="dest-detail-header">${label}</div>`;
-    html += `<div class="time-row">
-      <span class="sched-time">${otherSched}</span>
-      ${otherStime && otherStime !== otherSched ? `<span class="time-sep">→</span><span class="est-time">${otherStime}</span>` : ''}
-      ${otherSi ? `<span class="badge ${otherSi.cls}" style="margin-left:4px">${otherSi.label}</span>` : ''}
+    html += `<div class="time-dest-row">
+      <div class="time-block">
+        ${otherStime && otherStime !== otherSched
+          ? `<span class="sched-time struck">${otherSched}</span><span class="est-time">${otherStime}</span>`
+          : `<span class="sched-time">${otherSched}</span>`}
+        ${otherSi ? `<span class="badge ${otherSi.cls}" style="margin-left:4px">${otherSi.label}</span>` : ''}
+      </div>
     </div>`;
     if (hasMeta) {
       html += `<div class="meta-row" style="border-top:none;padding-top:0;margin-top:4px">
