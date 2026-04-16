@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Flytider</title>
 <meta name="apple-mobile-web-app-title" content="Flytider">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#185fa5">
@@ -1044,7 +1045,7 @@ async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw, arrivalRaw
   try {
     // adsb.lol: /v2/callsign/{callsign}
     const callsign = flightId.replace(/\s+/g, '').toUpperCase();
-    const url = `${PROXY}/adsb/callsign/${encodeURIComponent(callsign)}`;
+    const url = `${PROXY}/adsb/v2/callsign/${encodeURIComponent(callsign)}`;
     const res = await fetch(url);
 
     if (!res.ok) return timeBasedProgress();
