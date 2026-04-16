@@ -582,8 +582,17 @@ function toggleHistory() {
   document.getElementById('historyBtnTxt').textContent = showHistory
     ? (currentDir === 'D' ? 'Skjul tidligere avganger' : 'Skjul tidligere ankomster')
     : (currentDir === 'D' ? 'Vis tidligere avganger' : 'Vis tidligere ankomster');
+
+  // Remember scroll position before re-render
+  const scrollY = window.scrollY;
   renderFlights();
-  if (!showHistory) scrollToNow();
+
+  if (showHistory) {
+    // Restore scroll so user stays where they were
+    window.scrollTo({ top: scrollY, behavior: 'instant' });
+  } else {
+    scrollToNow();
+  }
 }
 
 async function fetchXML(path) {
