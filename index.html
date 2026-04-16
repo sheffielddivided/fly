@@ -229,18 +229,25 @@
     margin-bottom: 0.625rem;
   }
 
-  .flight-card.past {
-    border-left: 3px solid var(--border-strong);
-  }
+  .flight-card.past { border-left: 3px solid var(--border-strong); }
 
   .flight-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1px;
+    align-items: center;
+    margin-bottom: 6px;
   }
 
+  .flight-top-left { display: flex; align-items: center; gap: 8px; }
   .flight-id { font-size: 15px; font-weight: 500; }
+  .airline-chip {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg);
+    padding: 2px 7px;
+    border-radius: 99px;
+    border: 0.5px solid var(--border);
+  }
 
   .badge {
     font-size: 11px;
@@ -255,71 +262,119 @@
   .badge-delayed { background: var(--warning-bg); color: var(--warning-text); }
   .badge-info { background: var(--info-bg); color: var(--info-text); }
 
-  .airline-name {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
+  /* Fra/til rader */
+  .route-rows { display: flex; flex-direction: column; gap: 4px; }
+
+  .route-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
-  .time-dest-row {
+  .route-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 5px;
-  }
-
-  .time-block {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
     flex-shrink: 0;
   }
 
-  .sched-time { font-size: 20px; font-weight: 500; }
-  .sched-time.struck {
-    font-size: 14px;
+  .route-icon-dep {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .route-icon-arr {
+    background: var(--bg);
+    border: 0.5px solid var(--border-strong);
+    color: var(--text-muted);
+  }
+
+  .route-time {
+    font-size: 18px;
+    font-weight: 500;
+    min-width: 48px;
+    flex-shrink: 0;
+  }
+
+  .route-time-struck {
+    font-size: 12px;
     font-weight: 400;
     color: var(--text-hint);
     text-decoration: line-through;
+    margin-right: 2px;
   }
-  .est-time { font-size: 20px; font-weight: 500; }
-  .time-sep { font-size: 12px; color: var(--text-hint); }
 
-  .dest-name { font-size: 13px; color: var(--text); margin-bottom: 2px; line-height: 1.4; }
-  .dest-code { color: var(--text-muted); font-size: 12px; }
-  .route-arrow { color: var(--text-hint); margin: 0 2px; }
+  .route-airport {
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-  .via-row { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .route-airport-code {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 3px;
+  }
 
-  .meta-row {
+  .route-meta {
     display: flex;
+    gap: 8px;
+    flex-shrink: 0;
     flex-wrap: wrap;
-    gap: 6px 14px;
+    justify-content: flex-end;
+  }
+
+  .route-meta-item {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .route-meta-item strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .route-connector {
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 9px;
+    height: 6px;
+  }
+
+  .route-connector-line {
+    width: 1px;
+    height: 6px;
+    background: var(--border-strong);
+    margin-left: 1px;
+  }
+
+  .via-row { font-size: 11px; color: var(--text-muted); margin: 2px 0 0 32px; }
+
+  /* Auto-expanded data panel */
+  .auto-panel {
     margin-top: 8px;
     padding-top: 8px;
     border-top: 0.5px solid var(--border);
+    min-height: 20px;
   }
 
-  .meta { font-size: 12px; color: var(--text-muted); }
-  .meta strong { color: var(--text); font-weight: 500; }
-
-  .flight-card.expandable { cursor: pointer; }
-  .flight-card.expandable:active { opacity: 0.85; }
-
-  .expand-panel {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 0.5px solid var(--border);
-  }
+  .auto-panel.loading { opacity: 0.5; }
 
   .expand-section-title {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     color: var(--text-hint);
-    margin: 10px 0 6px;
+    margin: 8px 0 5px;
   }
 
   .expand-section-title:first-child { margin-top: 0; }
@@ -327,32 +382,18 @@
   .live-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 5px;
   }
 
   .live-cell {
     background: var(--bg);
     border-radius: var(--radius);
-    padding: 8px 10px;
+    padding: 7px 9px;
   }
 
-  .live-cell-label {
-    font-size: 11px;
-    color: var(--text-hint);
-    margin-bottom: 2px;
-  }
-
-  .live-cell-value {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .live-cell-unit {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: 2px;
-  }
+  .live-cell-label { font-size: 10px; color: var(--text-hint); margin-bottom: 1px; }
+  .live-cell-value { font-size: 14px; font-weight: 500; color: var(--text); }
+  .live-cell-unit { font-size: 10px; color: var(--text-muted); margin-left: 2px; }
 
   .onground-badge {
     display: inline-flex;
@@ -362,60 +403,44 @@
     color: var(--text-muted);
     background: var(--bg);
     border-radius: var(--radius);
-    padding: 5px 10px;
+    padding: 4px 9px;
     margin-bottom: 4px;
   }
 
-  .dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .dot-green { background: #4caf50; }
   .dot-gray  { background: var(--text-hint); }
 
-  .progress-wrap { margin-top: 4px; }
-
+  .progress-wrap { margin-top: 6px; }
   .progress-labels {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
-
   .progress-airport { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
   .progress-track {
     position: relative;
     height: 4px;
     background: var(--border);
     border-radius: 99px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
-
   .progress-fill {
     height: 100%;
-    background: var(--info-border);
+    background: var(--accent);
+    opacity: 0.5;
     border-radius: 99px;
-    transition: width 0.4s ease;
   }
-
   .progress-plane {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1;
-    filter: drop-shadow(0 0 2px var(--color-background-primary));
   }
-
-  .progress-pct {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: center;
-  }
+  .progress-pct { font-size: 11px; color: var(--text-muted); text-align: center; }
 
   .empty, .loading-msg {
     text-align: center;
@@ -680,6 +705,7 @@ async function fetchFlights() {
 }
 
 function renderFlights() {
+  loadedCards.clear();
   const el = document.getElementById('flightResults');
   const now = Date.now();
   let html = '';
@@ -737,37 +763,53 @@ function renderFlights() {
     const hasMeta = gate || checkin || belt;
     const isDomestic = domInt === 'D';
     const uid = f.getAttribute('uniqueID') || id;
+    const actualDepRaw = (scode === 'D' && statusEl?.getAttribute('time'))
+      ? statusEl.getAttribute('time') : schedRaw;
 
-    html += `<div class="flight-card${isPast ? ' past' : ''} expandable" id="card-${uid}" onclick="toggleExpand('${uid}','${id}','${destCode}','${schedRaw}','${domInt}')">
+    const homeCode = document.getElementById('airportSel').value;
+    const homeName = airportNames[homeCode] || homeCode;
+    const fromCode = currentDir === 'D' ? homeCode : destCode;
+    const toCode   = currentDir === 'D' ? destCode : homeCode;
+    const fromName = currentDir === 'D' ? homeName : destName;
+    const toName   = currentDir === 'D' ? destName : homeName;
+
+    // Avgangslinje: viser tidspunkt + flyplasskode/meta
+    const depTimeHtml = stime && stime !== sched
+      ? `<span class="route-time-struck">${sched}</span><span class="route-time">${stime}</span>`
+      : `<span class="route-time">${sched}</span>`;
+
+    html += `<div class="flight-card${isPast ? ' past' : ''}" id="card-${uid}"
+        data-uid="${uid}" data-flight="${id}" data-from="${fromCode}" data-to="${toCode}"
+        data-sched="${schedRaw}" data-dep="${actualDepRaw}" data-dom="${domInt}">
       <div class="flight-top">
-        <div class="flight-id">${id}</div>
+        <div class="flight-top-left">
+          <span class="flight-id">${id}</span>
+          <span class="airline-chip">${airName}</span>
+        </div>
         ${si ? `<span class="badge ${si.cls}">${si.label}</span>` : ''}
       </div>
-      <div class="airline-name">${airName}</div>
-      <div class="time-dest-row">
-        <div class="time-block">
-          ${stime && stime !== sched
-            ? `<span class="sched-time struck">${sched}</span><span class="est-time">${stime}</span>`
-            : `<span class="sched-time">${sched}</span>`}
+      <div class="route-rows">
+        <div class="route-row">
+          <div class="route-icon route-icon-dep">▶</div>
+          ${depTimeHtml}
+          <div class="route-airport">${fromName} <span class="route-airport-code">(${fromCode})</span></div>
+          <div class="route-meta">
+            ${gate    ? `<span class="route-meta-item">Gate <strong>${gate}</strong></span>` : ''}
+            ${checkin ? `<span class="route-meta-item">Innsjekk <strong>${checkin}</strong></span>` : ''}
+          </div>
         </div>
-        <div class="dest-name">
-          ${currentDir === 'D'
-            ? `${airportNames[document.getElementById('airportSel').value] || document.getElementById('airportSel').value} <span class="route-arrow">→</span> ${destName} <span class="dest-code">(${destCode})</span>`
-            : `${destName} <span class="dest-code">(${destCode})</span> <span class="route-arrow">→</span> ${airportNames[document.getElementById('airportSel').value] || document.getElementById('airportSel').value}`
-          }
+        <div class="route-connector"><div class="route-connector-line"></div></div>
+        <div class="route-row">
+          <div class="route-icon route-icon-arr">▼</div>
+          <span class="route-time" id="arr-time-${uid}">—</span>
+          <div class="route-airport">${toName} <span class="route-airport-code">(${toCode})</span></div>
+          <div class="route-meta">
+            ${belt ? `<span class="route-meta-item">Bånd <strong>${belt}</strong></span>` : ''}
+          </div>
         </div>
       </div>
       ${viaNames ? `<div class="via-row">via ${viaNames}</div>` : ''}
-      ${hasMeta ? `<div class="meta-row">
-        ${gate    ? `<span class="meta">Gate <strong>${gate}</strong></span>` : ''}
-        ${checkin ? `<span class="meta">Innsjekk <strong>${checkin}</strong></span>` : ''}
-        ${belt    ? `<span class="meta">Bagasjebånd <strong>${belt}</strong></span>` : ''}
-      </div>` : ''}
-      <div class="expand-hint" id="hint-${uid}">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Mer info</span>
-      </div>
-      <div class="expand-panel" id="expand-${uid}" style="display:none"></div>
+      <div class="auto-panel" id="auto-${uid}"></div>
     </div>`;
   });
 
@@ -777,6 +819,7 @@ function renderFlights() {
   }
 
   el.innerHTML = html;
+  setupObserver();
 }
 
 function scrollToNow() {
@@ -799,49 +842,114 @@ function statusInfo(code) {
   }[code] || { label: code, cls: 'badge-info' };
 }
 
-// ── Expand panel (dest info + OpenSky) ───────────────────────────────────
-const expandCache = {};
+// ── Auto-load card data via IntersectionObserver ──────────────────────────
+const loadedCards = new Set();
+let adsbQueue = Promise.resolve();
+let observer;
 
-async function toggleExpand(uid, flightId, destCode, schedRaw, domInt) {
-  const panel = document.getElementById(`expand-${uid}`);
-  const hint  = document.getElementById(`hint-${uid}`);
+function setupObserver() {
+  if (observer) observer.disconnect();
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const card = entry.target;
+      const uid = card.dataset.uid;
+      if (!uid || loadedCards.has(uid)) return;
+      loadedCards.add(uid);
+      observer.unobserve(card);
+      loadCardData(card);
+    });
+  }, { rootMargin: '200px' });
+
+  document.querySelectorAll('.flight-card[data-uid]').forEach(card => {
+    observer.observe(card);
+  });
+}
+
+async function loadCardData(card) {
+  const uid      = card.dataset.uid;
+  const flightId = card.dataset.flight;
+  const fromCode = card.dataset.from;
+  const toCode   = card.dataset.to;
+  const schedRaw = card.dataset.sched;
+  const depRaw   = card.dataset.dep;
+  const domInt   = card.dataset.dom;
+  const panel    = document.getElementById(`auto-${uid}`);
+  const arrTimeEl = document.getElementById(`arr-time-${uid}`);
   if (!panel) return;
 
-  const isOpen = panel.style.display !== 'none';
-  if (isOpen) {
-    panel.style.display = 'none';
-    hint.classList.remove('open');
-    hint.querySelector('span').textContent = 'Mer info';
-    return;
+  // Hent dest-data (Avinor) og ADS-B parallelt
+  const [destResult, skyHtml] = await Promise.all([
+    domInt === 'D' ? fetchDestData(flightId, toCode) : fetchDestDataSchengen(flightId, toCode),
+    // ADS-B køes for å respektere rate limit
+    new Promise(resolve => {
+      adsbQueue = adsbQueue.then(() =>
+        new Promise(r => setTimeout(r, 300))
+      ).then(() =>
+        fetchOpenSkyHtml(uid, flightId, fromCode, toCode, depRaw || schedRaw,
+          null /* arrivalRaw settes etter dest-data er klar */)
+        .then(resolve)
+      );
+    }),
+  ]);
+
+  // Oppdater ankomsttid i til-raden
+  if (destResult?.schedRaw && arrTimeEl) {
+    arrTimeEl.textContent = utcToLocal(destResult.schedRaw);
   }
 
-  panel.style.display = 'block';
-  hint.classList.add('open');
-  hint.querySelector('span').textContent = 'Skjul';
-
-  if (expandCache[uid]) {
-    panel.innerHTML = expandCache[uid];
-    return;
-  }
-
-  panel.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;display:flex;align-items:center;gap:6px"><span class="mini-spinner"></span>Henter data…</div>';
-
-  const fromCode = currentDir === 'D' ? document.getElementById('airportSel').value : destCode;
-  const toCode   = currentDir === 'D' ? destCode : document.getElementById('airportSel').value;
-
-  // Hent destinasjonsdata for innenriks (gir gate/bånd + ankomsttid for framdrift)
-  // For Schengen/internasjonal: bare bruk schedRaw som fallback for framdrift
-  const destResult = domInt === 'D' ? await fetchDestData(flightId, destCode) : null;
+  // Kjør framdrift på nytt med riktig ankomsttid
   const arrivalRaw = destResult?.schedRaw || null;
-  const destHtml   = destResult?.html || '';
+  const progressHtml = buildProgressHtml(fromCode, toCode, depRaw || schedRaw, arrivalRaw);
 
-  const skyHtml = await fetchOpenSkyHtml(uid, flightId, fromCode, toCode, schedRaw, arrivalRaw);
+  const parts = [destResult?.html || '', skyHtml, progressHtml].filter(Boolean);
+  panel.innerHTML = parts.join('') || '';
+}
 
-  const html = [destHtml, skyHtml].filter(Boolean).join('') ||
-    '<div style="font-size:12px;color:var(--text-muted)">Ingen tilleggsdata tilgjengelig</div>';
+// Hent ankomstdata for Schengen/internasjonal (bare tid, gate, bånd — ingen destinfopanel)
+async function fetchDestDataSchengen(flightId, destCode) {
+  try {
+    const otherDir = currentDir === 'D' ? 'A' : 'D';
+    const xml = await fetchXML(`/XmlFeed/v1.0?airport=${destCode}&TimeFrom=4&TimeTo=25&direction=${otherDir}`);
+    const match = [...xml.querySelectorAll('flight')].find(f =>
+      (f.querySelector('flight_id')?.textContent || '').trim() === flightId.trim()
+    );
+    if (!match) return null;
+    const raw = match.querySelector('status')?.getAttribute('time')
+              || match.querySelector('schedule_time')?.textContent || '';
+    return { html: '', schedRaw: raw };
+  } catch(e) { return null; }
+}
 
-  expandCache[uid] = html;
-  panel.innerHTML = html;
+function buildProgressHtml(fromCode, toCode, depRaw, arrivalRaw) {
+  if (!depRaw) return '';
+  const depMs     = new Date(depRaw).getTime();
+  const now       = Date.now();
+  const elapsedMs = now - depMs;
+  if (elapsedMs < 0) return '';
+
+  let pct, etaStr;
+  if (arrivalRaw) {
+    const arrMs   = new Date(arrivalRaw).getTime();
+    const totalMs = arrMs - depMs;
+    if (totalMs <= 0) return '';
+    pct    = Math.min(100, (elapsedMs / totalMs) * 100);
+    etaStr = pct < 100
+      ? new Date(arrMs).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+      : null;
+  } else {
+    const fc = AIRPORT_COORDS[fromCode], tc = AIRPORT_COORDS[toCode];
+    if (!fc || !tc) return '';
+    const totalH   = haversineKm(...fc, ...tc) / 850;
+    const elapsedH = elapsedMs / 3600000;
+    if (elapsedH > 24) return '';
+    pct    = Math.min(100, (elapsedH / totalH) * 100);
+    const remH = Math.max(0, totalH - elapsedH);
+    etaStr = pct < 100
+      ? new Date(now + remH * 3600000).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+      : null;
+  }
+  return progressBarHtml(pct, fromCode, toCode, etaStr);
 }
 
 async function fetchDestData(flightId, destCode) {
@@ -853,89 +961,97 @@ async function fetchDestData(flightId, destCode) {
     );
     if (!match) return null;
 
-    const destName    = airportNames[destCode] || destCode;
-    const label       = currentDir === 'D' ? `Ankomst ${destName}` : `Avgang fra ${destName}`;
-    const schedRaw    = match.querySelector('schedule_time')?.textContent || '';
-    const otherSched  = utcToLocal(schedRaw);
-    const statusEl    = match.querySelector('status');
-    const otherScode  = statusEl?.getAttribute('code') || '';
-    // Use updated time if available, otherwise scheduled time
+    const schedRaw     = match.querySelector('schedule_time')?.textContent || '';
+    const statusEl     = match.querySelector('status');
+    const otherScode   = statusEl?.getAttribute('code') || '';
     const otherStimeRaw = statusEl?.getAttribute('time') || schedRaw;
-    const otherStime  = otherStimeRaw ? utcToLocal(otherStimeRaw) : '';
-    const otherGate   = match.querySelector('gate')?.textContent || '';
-    const otherBelt   = match.querySelector('belt_number')?.textContent || '';
+    const otherGate    = match.querySelector('gate')?.textContent || '';
+    const otherBelt    = match.querySelector('belt_number')?.textContent || '';
     const otherCheckin = match.querySelector('check_in')?.textContent || '';
-    const otherSi     = otherScode ? statusInfo(otherScode) : null;
-    const hasMeta     = otherGate || otherBelt || otherCheckin;
+    const otherSi      = otherScode ? statusInfo(otherScode) : null;
+    const hasMeta      = otherGate || otherBelt || otherCheckin;
 
-    let html = `<div class="expand-section-title">${label}</div>`;
-    html += `<div class="time-dest-row" style="margin-bottom:4px">
-      <div class="time-block">
-        ${otherStime && otherStime !== otherSched
-          ? `<span class="sched-time struck">${otherSched}</span><span class="est-time">${otherStime}</span>`
-          : `<span class="sched-time" style="font-size:17px">${otherSched}</span>`}
-        ${otherSi ? `<span class="badge ${otherSi.cls}" style="margin-left:6px">${otherSi.label}</span>` : ''}
-      </div>
-    </div>`;
-    if (hasMeta) {
-      html += `<div class="meta-row" style="border-top:none;padding-top:0;margin-top:2px">
-        ${otherGate    ? `<span class="meta">Gate <strong>${otherGate}</strong></span>` : ''}
-        ${otherCheckin ? `<span class="meta">Innsjekk <strong>${otherCheckin}</strong></span>` : ''}
-        ${otherBelt    ? `<span class="meta">Bagasjebånd <strong>${otherBelt}</strong></span>` : ''}
-      </div>`;
+    // Build small dest-meta panel (gate/belt at destination)
+    let html = '';
+    if (hasMeta || otherSi) {
+      html += `<div class="expand-section-title">På ${airportNames[destCode] || destCode}</div>`;
+      if (otherSi) html += `<span class="badge ${otherSi.cls}" style="margin-bottom:6px;display:inline-block">${otherSi.label}</span> `;
+      if (hasMeta) {
+        html += `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)">
+          ${otherGate    ? `<span>Gate <strong style="color:var(--text)">${otherGate}</strong></span>` : ''}
+          ${otherCheckin ? `<span>Innsjekk <strong style="color:var(--text)">${otherCheckin}</strong></span>` : ''}
+          ${otherBelt    ? `<span>Bagasjebånd <strong style="color:var(--text)">${otherBelt}</strong></span>` : ''}
+        </div>`;
+      }
     }
 
-    // Return both the HTML and the best arrival time (updated if exists, else scheduled)
     return { html, schedRaw: otherStimeRaw };
   } catch(e) { return null; }
 }
 
-async function fetchOpenSkyHtml(flightId) {
+async function fetchOpenSkyHtml(uid, flightId, fromCode, toCode, depRaw, arrivalRaw) {
   try {
-    const callsign = flightId.replace(/\s+/g, '').toUpperCase().padEnd(8).substring(0, 8);
-    const url = `${PROXY}/opensky/states/all?callsign=${encodeURIComponent(callsign.trim())}`;
-    const res = await fetch(url);
-    if (!res.ok) return '';
-    const data = await res.json();
+    const callsign = flightId.replace(/\s+/g, '').toUpperCase();
+    const res = await fetch(`${PROXY}/adsb/v2/callsign/${encodeURIComponent(callsign)}`);
 
-    const states = data.states;
-    if (!states || !states.length) {
-      return `<div class="expand-section-title">Live posisjon</div>
-        <div class="onground-badge"><span class="dot dot-gray"></span>Ikke i lufta akkurat nå</div>`;
+    if (res.status === 429) {
+      setTimeout(() => loadedCards.delete(uid), 5000); // retry after 5s
+      return '';
     }
+    if (!res.ok) return '';
 
-    const s = states[0];
-    // OpenSky state vector fields:
-    // [icao24, callsign, origin_country, time_position, last_contact,
-    //  longitude, latitude, baro_altitude, on_ground, velocity,
-    //  true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source]
-    const onGround     = s[8];
-    const velocity     = s[9] != null ? Math.round(s[9] * 3.6) : null;   // m/s → km/t
-    const baroAlt      = s[7] != null ? Math.round(s[7]) : null;          // meter
-    const geoAlt       = s[13] != null ? Math.round(s[13]) : null;
-    const altitude     = geoAlt ?? baroAlt;
-    const altFt        = altitude != null ? Math.round(altitude * 3.281) : null;
-    const track        = s[10] != null ? Math.round(s[10]) : null;
-    const vertRate     = s[11] != null ? Math.round(s[11]) : null;
-    const country      = s[2] || '';
+    const data = await res.json();
+    const ac = data.ac;
+    if (!ac || !ac.length) return '';
 
+    const s = ac[0];
+    const onGround = s.alt_baro === 'ground' || s.gs < 50;
+    const lat      = s.lat;
+    const lon      = s.lon;
+    const altFt    = typeof s.alt_geom === 'number' ? Math.round(s.alt_geom)
+                   : typeof s.alt_baro === 'number' ? Math.round(s.alt_baro) : null;
+    const velocity = s.gs != null ? Math.round(s.gs * 1.852) : null;
+    const track    = s.track != null ? Math.round(s.track) : null;
+    const baroRate = s.baro_rate;
+    const acType   = s.t || '';
+    const reg      = s.r || '';
     const compassDir = track != null ? trackToCompass(track) : null;
-    const vertLabel  = vertRate != null
-      ? (vertRate > 1 ? `↑ stiger` : vertRate < -1 ? `↓ synker` : `→ cruiser`)
+    const vertLabel  = baroRate != null
+      ? (baroRate > 64 ? '↑ stiger' : baroRate < -64 ? '↓ synker' : '→ cruiser')
       : null;
 
-    if (onGround) {
-      return `<div class="expand-section-title">Live posisjon</div>
-        <div class="onground-badge"><span class="dot dot-gray"></span>På bakken (${country})</div>`;
+    if (onGround) return '';
+
+    // Oppdater framdrift med live-posisjon
+    if (lat != null && lon != null) {
+      const fc = AIRPORT_COORDS[fromCode], tc = AIRPORT_COORDS[toCode];
+      if (fc && tc) {
+        const totalKm = haversineKm(...fc, ...tc);
+        const doneKm  = haversineKm(fc[0], fc[1], lat, lon);
+        const pct     = Math.min(100, (doneKm / totalKm) * 100);
+        const remKm   = Math.max(0, totalKm - doneKm);
+        const etaStr  = arrivalRaw
+          ? new Date(arrivalRaw).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+          : velocity && velocity > 100
+            ? new Date(Date.now() + (remKm / velocity) * 3600000)
+                .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+            : null;
+        // Oppdater framdriftslinjen i panelet direkte
+        const panel = document.getElementById(`auto-${uid}`);
+        if (panel) {
+          const prog = panel.querySelector('.progress-wrap');
+          if (prog) prog.outerHTML = progressBarHtml(pct, fromCode, toCode, etaStr);
+        }
+      }
     }
 
-    let html = `<div class="expand-section-title">Live posisjon <span style="font-size:10px;color:var(--text-hint);font-weight:400;text-transform:none;letter-spacing:0">(OpenSky)</span></div>`;
-    html += `<div class="onground-badge" style="margin-bottom:8px"><span class="dot dot-green"></span>I lufta — ${country}</div>`;
+    let html = `<div class="expand-section-title">Live <span style="font-weight:400;text-transform:none;letter-spacing:0">${reg ? reg : ''}${acType ? ' · ' + acType : ''}</span></div>`;
+    html += `<div class="onground-badge" style="margin-bottom:6px"><span class="dot dot-green"></span>I lufta</div>`;
     html += `<div class="live-grid">`;
-    if (altitude != null) html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt != null ? altFt.toLocaleString('nb-NO') : '—'}<span class="live-cell-unit">fot</span></div></div>`;
+    if (altFt != null)   html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt.toLocaleString('nb-NO')}<span class="live-cell-unit">fot</span></div></div>`;
     if (velocity != null) html += `<div class="live-cell"><div class="live-cell-label">Hastighet</div><div class="live-cell-value">${velocity}<span class="live-cell-unit">km/t</span></div></div>`;
     if (compassDir)       html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
-    if (vertLabel)        html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:13px">${vertLabel}</div></div>`;
+    if (vertLabel)        html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:12px">${vertLabel}</div></div>`;
     html += `</div>`;
     return html;
   } catch(e) { return ''; }
@@ -1001,135 +1117,6 @@ function progressBarHtml(pct, fromCode, toCode, etaStr) {
     </div>
     <div class="progress-pct">${Math.round(pct)}% fullført${etaStr ? ` · Est. ankomst <strong>${etaStr}</strong>` : ''}</div>
   </div>`;
-}
-
-async function fetchOpenSkyHtml(uid, flightId, fromCode, toCode, schedRaw, arrivalRaw) {
-  // Framdrift basert på tid: bruker faktisk ankomsttid hvis tilgjengelig
-  function timeBasedProgress() {
-    if (!schedRaw) return '';
-    const depMs  = new Date(schedRaw).getTime();
-    const now    = Date.now();
-    const elapsedMs = now - depMs;
-    if (elapsedMs < 0) return '';
-
-    let pct, etaStr;
-
-    if (arrivalRaw) {
-      // Interpoler mellom kjent avgang og ankomst
-      const arrMs   = new Date(arrivalRaw).getTime();
-      const totalMs = arrMs - depMs;
-      if (totalMs <= 0) return '';
-      pct = Math.min(100, (elapsedMs / totalMs) * 100);
-      const remMs = Math.max(0, arrMs - now);
-      etaStr = pct < 100
-        ? new Date(arrMs).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
-        : null;
-    } else {
-      // Fallback: tidsbasert med estimert distanse
-      const fromCoords = AIRPORT_COORDS[fromCode];
-      const toCoords   = AIRPORT_COORDS[toCode];
-      if (!fromCoords || !toCoords) return '';
-      const totalKm  = haversineKm(...fromCoords, ...toCoords);
-      const totalH   = totalKm / 850;
-      const elapsedH = elapsedMs / 3600000;
-      if (elapsedH > 24) return '';
-      pct = Math.min(100, (elapsedH / totalH) * 100);
-      const remH = Math.max(0, totalH - elapsedH);
-      etaStr = pct < 100
-        ? new Date(now + remH * 3600000).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
-        : null;
-    }
-
-    return progressBarHtml(pct, fromCode, toCode, etaStr);
-  }
-
-  try {
-    const callsign = flightId.replace(/\s+/g, '').toUpperCase();
-    const url = `${PROXY}/adsb/v2/callsign/${encodeURIComponent(callsign)}`;
-    const res = await fetch(url);
-
-    if (res.status === 429) {
-      const fb = timeBasedProgress();
-      const msg = fb || `<div class="expand-section-title">Live posisjon</div>
-        <div class="onground-badge"><span class="dot dot-gray"></span>For mange forespørsler — lukk og prøv igjen</div>`;
-      // Ikke cache 429 — brukeren skal kunne prøve igjen
-      setTimeout(() => delete expandCache[uid], 100);
-      return msg;
-    }
-
-    if (!res.ok) return timeBasedProgress();
-
-    const data = await res.json();
-    // adsb.lol returns { ac: [ {...}, ... ] }
-    const ac = data.ac;
-    if (!ac || !ac.length) {
-      const depMs = new Date(schedRaw).getTime();
-      if (Date.now() > depMs) return timeBasedProgress();
-      return `<div class="expand-section-title">Live posisjon</div>
-        <div class="onground-badge"><span class="dot dot-gray"></span>Ikke i lufta ennå</div>`;
-    }
-
-    const s = ac[0];
-    // adsb.lol fields: lat, lon, alt_baro, alt_geom, gs (ground speed knots),
-    // track, baro_rate, flight, type, r (registration), t (aircraft type)
-    const onGround  = s.alt_baro === 'ground' || s.gs < 50;
-    const lat       = s.lat;
-    const lon       = s.lon;
-    const altFt     = typeof s.alt_geom === 'number' ? Math.round(s.alt_geom)
-                    : typeof s.alt_baro === 'number' ? Math.round(s.alt_baro) : null;
-    const gsKnots   = s.gs;
-    const velocity  = gsKnots != null ? Math.round(gsKnots * 1.852) : null; // knots → km/t
-    const track     = s.track != null ? Math.round(s.track) : null;
-    const baroRate  = s.baro_rate;
-    const acType    = s.t || '';
-    const reg       = s.r || '';
-
-    const compassDir = track != null ? trackToCompass(track) : null;
-    const vertLabel  = baroRate != null
-      ? (baroRate > 64 ? '↑ stiger' : baroRate < -64 ? '↓ synker' : '→ cruiser')
-      : null;
-
-    if (onGround) {
-      return `<div class="expand-section-title">Live posisjon</div>
-        <div class="onground-badge"><span class="dot dot-gray"></span>På bakken</div>`;
-    }
-
-    // Framdrift fra live-posisjon
-    let progressHtml = '';
-    const fromCoords = AIRPORT_COORDS[fromCode];
-    const toCoords   = AIRPORT_COORDS[toCode];
-    if (fromCoords && toCoords && lat != null && lon != null) {
-      const totalKm = haversineKm(...fromCoords, ...toCoords);
-      const doneKm  = haversineKm(fromCoords[0], fromCoords[1], lat, lon);
-      const pct     = Math.min(100, (doneKm / totalKm) * 100);
-      const remKm   = Math.max(0, totalKm - doneKm);
-      let etaStr = null;
-      if (arrivalRaw) {
-        // Bruk offisiell ankomsttid direkte
-        etaStr = pct < 100
-          ? new Date(arrivalRaw).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
-          : null;
-      } else if (velocity && velocity > 100) {
-        etaStr = new Date(Date.now() + (remKm / velocity) * 3600000)
-          .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'});
-      }
-      progressHtml = progressBarHtml(pct, fromCode, toCode, etaStr);
-    }
-
-    let html = `<div class="expand-section-title">Live posisjon <span style="font-size:10px;color:var(--text-hint);font-weight:400;text-transform:none;letter-spacing:0">(ADS-B)</span></div>`;
-    html += `<div class="onground-badge" style="margin-bottom:8px"><span class="dot dot-green"></span>I lufta${reg ? ` — ${reg}` : ''}${acType ? ` (${acType})` : ''}</div>`;
-    html += `<div class="live-grid">`;
-    if (altFt != null) html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt.toLocaleString('nb-NO')}<span class="live-cell-unit">fot</span></div></div>`;
-    if (velocity != null) html += `<div class="live-cell"><div class="live-cell-label">Hastighet</div><div class="live-cell-value">${velocity}<span class="live-cell-unit">km/t</span></div></div>`;
-    if (compassDir) html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
-    if (vertLabel)  html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:13px">${vertLabel}</div></div>`;
-    html += `</div>`;
-    html += progressHtml;
-    return html;
-
-  } catch(e) {
-    return timeBasedProgress();
-  }
 }
 
 boot();
