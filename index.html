@@ -762,7 +762,8 @@ function renderFlights() {
     const checkin  = f.querySelector('check_in')?.textContent || '';
     const viaRaw   = f.querySelector('via_airport')?.textContent || '';
     const domInt   = f.querySelector('dom_int')?.textContent || '';
-    const si       = scode ? statusInfo(scode) : null;
+    // Vis kun Ny tid-badge når det faktisk er en annen tid
+    const si = scode === 'E' && !hasNewTime ? null : (scode ? statusInfo(scode) : null);
 
     const viaNames = viaRaw
       ? viaRaw.split(',').map(c => airportNames[c.trim()] || c.trim()).join(' → ')
