@@ -250,8 +250,9 @@
   .est-time { font-size: 20px; font-weight: 500; }
   .time-sep { font-size: 12px; color: var(--text-hint); }
 
-  .dest-name { font-size: 14px; color: var(--text); margin-bottom: 2px; }
-  .dest-code { color: var(--text-muted); font-size: 13px; }
+  .dest-name { font-size: 13px; color: var(--text); margin-bottom: 2px; line-height: 1.4; }
+  .dest-code { color: var(--text-muted); font-size: 12px; }
+  .route-arrow { color: var(--text-hint); margin: 0 2px; }
 
   .via-row { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
 
@@ -629,7 +630,12 @@ function renderFlights() {
             ? `<span class="sched-time struck">${sched}</span><span class="est-time">${stime}</span>`
             : `<span class="sched-time">${sched}</span>`}
         </div>
-        <div class="dest-name">${destName} <span class="dest-code">(${destCode})</span></div>
+        <div class="dest-name">
+          ${currentDir === 'D'
+            ? `${airportNames[document.getElementById('airportSel').value] || document.getElementById('airportSel').value} <span class="route-arrow">→</span> ${destName} <span class="dest-code">(${destCode})</span>`
+            : `${destName} <span class="dest-code">(${destCode})</span> <span class="route-arrow">→</span> ${airportNames[document.getElementById('airportSel').value] || document.getElementById('airportSel').value}`
+          }
+        </div>
       </div>
       ${viaNames ? `<div class="via-row">via ${viaNames}</div>` : ''}
       ${hasMeta ? `<div class="meta-row">
