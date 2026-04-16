@@ -583,14 +583,19 @@ function toggleHistory() {
     ? (currentDir === 'D' ? 'Skjul tidligere avganger' : 'Skjul tidligere ankomster')
     : (currentDir === 'D' ? 'Vis tidligere avganger' : 'Vis tidligere ankomster');
 
-  // Remember scroll position before re-render
-  const scrollY = window.scrollY;
-  renderFlights();
-
   if (showHistory) {
-    // Restore scroll so user stays where they were
-    window.scrollTo({ top: scrollY, behavior: 'instant' });
+    // Finn nå-markørens posisjon før re-render
+    const marker = document.getElementById('now-marker');
+    const markerTop = marker ? marker.getBoundingClientRect().top : null;
+    renderFlights();
+    // Etter re-render: finn markøren igjen og juster scroll slik at den er på samme sted
+    const newMarker = document.getElementById('now-marker');
+    if (newMarker && markerTop !== null) {
+      const newMarkerTop = newMarker.getBoundingClientRect().top;
+      window.scrollBy({ top: newMarkerTop - markerTop, behavior: 'instant' });
+    }
   } else {
+    renderFlights();
     scrollToNow();
   }
 }
