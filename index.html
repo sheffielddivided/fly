@@ -223,6 +223,58 @@
   .meta { font-size: 12px; color: var(--text-muted); }
   .meta strong { color: var(--text); font-weight: 500; }
 
+  .flight-card.domestic { cursor: pointer; }
+  .flight-card.domestic:active { opacity: 0.85; }
+
+  .expand-hint {
+    font-size: 11px;
+    color: var(--info-text);
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .expand-hint svg { transition: transform 0.2s; }
+  .expand-hint.open svg { transform: rotate(180deg); }
+
+  .dest-detail {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .dest-detail-header {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-hint);
+    margin-bottom: 6px;
+  }
+
+  .dest-detail .time-row { margin-bottom: 3px; }
+  .dest-detail .sched-time { font-size: 17px; }
+
+  .dest-loading {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mini-spinner {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--info-text);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
   .empty, .loading-msg {
     text-align: center;
     padding: 2.5rem 1rem;
@@ -478,8 +530,10 @@ function renderFlights() {
       : '';
 
     const hasMeta = gate || checkin || belt;
+    const isDomestic = domInt === 'D';
+    const uid = f.getAttribute('uniqueID') || id;
 
-    html += `<div class="flight-card${isPast ? ' past' : ''}">
+    html += `<div class="flight-card${isPast ? ' past' : ''}${isDomestic ? ' domestic' : ''}" id="card-${uid}"${isDomestic ? ` onclick="toggleDest('${uid}','${id}','${destCode}','${schedRaw}')"` : ''}>
       <div class="flight-top">
         <div class="flight-id">${id}</div>
         ${si ? `<span class="badge ${si.cls}">${si.label}</span>` : ''}
@@ -497,6 +551,11 @@ function renderFlights() {
         ${checkin ? `<span class="meta">Innsjekk <strong>${checkin}</strong></span>` : ''}
         ${belt    ? `<span class="meta">Bagasjebånd <strong>${belt}</strong></span>` : ''}
       </div>` : ''}
+      ${isDomestic ? `<div class="expand-hint" id="hint-${uid}">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${currentDir === 'D' ? 'Vis ankomstinfo' : 'Vis avganginfo'}
+      </div>
+      <div class="dest-detail" id="dest-${uid}" style="display:none"></div>` : ''}
     </div>`;
   });
 
@@ -530,6 +589,89 @@ function statusInfo(code) {
 
 function domLabel(v) {
   return { D: 'Innenriks', I: 'Internasjonal', S: 'Schengen' }[v] || v || '';
+}
+
+// ── Destination detail (lazy, cached) ────────────────────────────────────
+const destCache = {};
+
+async function toggleDest(uid, flightId, destCode, schedRaw) {
+  const panel = document.getElementById(`dest-${uid}`);
+  const hint  = document.getElementById(`hint-${uid}`);
+  if (!panel) return;
+
+  const isOpen = panel.style.display !== 'none';
+
+  if (isOpen) {
+    panel.style.display = 'none';
+    hint.classList.remove('open');
+    hint.querySelector('span') && (hint.querySelector('span').textContent =
+      currentDir === 'D' ? 'Vis ankomstinfo' : 'Vis avganginfo');
+    return;
+  }
+
+  panel.style.display = 'block';
+  hint.classList.add('open');
+  hint.querySelector('span') && (hint.querySelector('span').textContent =
+    currentDir === 'D' ? 'Skjul ankomstinfo' : 'Skjul avganginfo');
+
+  if (destCache[uid]) {
+    panel.innerHTML = destCache[uid];
+    return;
+  }
+
+  panel.innerHTML = '<div class="dest-loading"><span class="mini-spinner"></span>Henter…</div>';
+
+  try {
+    // For a departure we want the arrival at dest; for arrival we want departure from dest
+    const otherDir = currentDir === 'D' ? 'A' : 'D';
+    const qs = `/XmlFeed/v1.0?airport=${destCode}&TimeFrom=4&TimeTo=25&direction=${otherDir}`;
+    const xml = await fetchXML(qs);
+    const flights = [...xml.querySelectorAll('flight')];
+
+    // Match by flight_id (strip spaces for safety)
+    const match = flights.find(f =>
+      (f.querySelector('flight_id')?.textContent || '').trim() === flightId.trim()
+    );
+
+    if (!match) {
+      destCache[uid] = `<div style="font-size:12px;color:var(--text-muted)">Ingen data funnet for ${destCode}</div>`;
+      panel.innerHTML = destCache[uid];
+      return;
+    }
+
+    const destAirportCode = document.getElementById('airportSel').value;
+    const destAirportName = airportNames[destCode] || destCode;
+    const otherSched  = utcToLocal(match.querySelector('schedule_time')?.textContent);
+    const otherStatus = match.querySelector('status');
+    const otherScode  = otherStatus?.getAttribute('code') || '';
+    const otherStime  = otherStatus?.getAttribute('time') ? utcToLocal(otherStatus.getAttribute('time')) : '';
+    const otherGate   = match.querySelector('gate')?.textContent || '';
+    const otherBelt   = match.querySelector('belt_number')?.textContent || '';
+    const otherCheckin= match.querySelector('check_in')?.textContent || '';
+    const otherSi     = otherScode ? statusInfo(otherScode) : null;
+    const hasMeta     = otherGate || otherBelt || otherCheckin;
+    const label       = currentDir === 'D' ? `Ankomst ${destAirportName}` : `Avgang fra ${destAirportName}`;
+
+    let html = `<div class="dest-detail-header">${label}</div>`;
+    html += `<div class="time-row">
+      <span class="sched-time">${otherSched}</span>
+      ${otherStime && otherStime !== otherSched ? `<span class="time-sep">→</span><span class="est-time">${otherStime}</span>` : ''}
+      ${otherSi ? `<span class="badge ${otherSi.cls}" style="margin-left:4px">${otherSi.label}</span>` : ''}
+    </div>`;
+    if (hasMeta) {
+      html += `<div class="meta-row" style="border-top:none;padding-top:0;margin-top:4px">
+        ${otherGate    ? `<span class="meta">Gate <strong>${otherGate}</strong></span>` : ''}
+        ${otherCheckin ? `<span class="meta">Innsjekk <strong>${otherCheckin}</strong></span>` : ''}
+        ${otherBelt    ? `<span class="meta">Bagasjebånd <strong>${otherBelt}</strong></span>` : ''}
+      </div>`;
+    }
+
+    destCache[uid] = html;
+    panel.innerHTML = html;
+
+  } catch(e) {
+    panel.innerHTML = `<div style="font-size:12px;color:var(--danger-text)">Kunne ikke hente data</div>`;
+  }
 }
 
 boot();
