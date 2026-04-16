@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Avinor flydata</title>
+<title>Flydata</title>
+<meta name="apple-mobile-web-app-title" content="Flydata">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#185fa5">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23185fa5'/%3E%3Ctext y='75' x='50' text-anchor='middle' font-size='65' fill='white'%3E%E2%9C%88%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" id="apple-touch-icon">
+<rect width='100' height='100' rx='22' fill='%23185fa5'/><text y='72' x='50' text-anchor='middle' font-size='62'>✈</text></svg>">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -776,12 +783,15 @@ async function toggleExpand(uid, flightId, destCode, schedRaw, domInt) {
 
   panel.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;display:flex;align-items:center;gap:6px"><span class="mini-spinner"></span>Henter data…</div>';
 
-  const [destHtml, skyHtml] = await Promise.all([
-    domInt === 'D' ? fetchDestHtml(flightId, destCode) : Promise.resolve(''),
-    fetchOpenSkyHtml(flightId, currentDir === 'D' ? document.getElementById('airportSel').value : destCode,
-                               currentDir === 'D' ? destCode : document.getElementById('airportSel').value,
-                               schedRaw),
-  ]);
+  const fromCode = currentDir === 'D' ? document.getElementById('airportSel').value : destCode;
+  const toCode   = currentDir === 'D' ? destCode : document.getElementById('airportSel').value;
+
+  // Hent destinasjonsdata først så vi kan bruke faktisk ankomsttid i framdriftsindikatoren
+  const destResult = domInt === 'D' ? await fetchDestData(flightId, destCode) : null;
+  const arrivalRaw = destResult?.schedRaw || null;  // faktisk rutetid på destinasjon
+  const destHtml   = destResult?.html || '';
+
+  const skyHtml = await fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw, arrivalRaw);
 
   const html = [destHtml, skyHtml].filter(Boolean).join('') ||
     '<div style="font-size:12px;color:var(--text-muted)">Ingen tilleggsdata tilgjengelig</div>';
@@ -790,26 +800,29 @@ async function toggleExpand(uid, flightId, destCode, schedRaw, domInt) {
   panel.innerHTML = html;
 }
 
-async function fetchDestHtml(flightId, destCode) {
+async function fetchDestData(flightId, destCode) {
   try {
     const otherDir = currentDir === 'D' ? 'A' : 'D';
     const xml = await fetchXML(`/XmlFeed/v1.0?airport=${destCode}&TimeFrom=4&TimeTo=25&direction=${otherDir}`);
     const match = [...xml.querySelectorAll('flight')].find(f =>
       (f.querySelector('flight_id')?.textContent || '').trim() === flightId.trim()
     );
-    if (!match) return '';
+    if (!match) return null;
 
-    const destName   = airportNames[destCode] || destCode;
-    const label      = currentDir === 'D' ? `Ankomst ${destName}` : `Avgang fra ${destName}`;
-    const otherSched = utcToLocal(match.querySelector('schedule_time')?.textContent);
-    const otherSEl   = match.querySelector('status');
-    const otherScode = otherSEl?.getAttribute('code') || '';
-    const otherStime = otherSEl?.getAttribute('time') ? utcToLocal(otherSEl.getAttribute('time')) : '';
-    const otherGate  = match.querySelector('gate')?.textContent || '';
-    const otherBelt  = match.querySelector('belt_number')?.textContent || '';
+    const destName    = airportNames[destCode] || destCode;
+    const label       = currentDir === 'D' ? `Ankomst ${destName}` : `Avgang fra ${destName}`;
+    const schedRaw    = match.querySelector('schedule_time')?.textContent || '';
+    const otherSched  = utcToLocal(schedRaw);
+    const statusEl    = match.querySelector('status');
+    const otherScode  = statusEl?.getAttribute('code') || '';
+    // Use updated time if available, otherwise scheduled time
+    const otherStimeRaw = statusEl?.getAttribute('time') || schedRaw;
+    const otherStime  = otherStimeRaw ? utcToLocal(otherStimeRaw) : '';
+    const otherGate   = match.querySelector('gate')?.textContent || '';
+    const otherBelt   = match.querySelector('belt_number')?.textContent || '';
     const otherCheckin = match.querySelector('check_in')?.textContent || '';
-    const otherSi    = otherScode ? statusInfo(otherScode) : null;
-    const hasMeta    = otherGate || otherBelt || otherCheckin;
+    const otherSi     = otherScode ? statusInfo(otherScode) : null;
+    const hasMeta     = otherGate || otherBelt || otherCheckin;
 
     let html = `<div class="expand-section-title">${label}</div>`;
     html += `<div class="time-dest-row" style="margin-bottom:4px">
@@ -827,8 +840,10 @@ async function fetchDestHtml(flightId, destCode) {
         ${otherBelt    ? `<span class="meta">Bagasjebånd <strong>${otherBelt}</strong></span>` : ''}
       </div>`;
     }
-    return html;
-  } catch(e) { return ''; }
+
+    // Return both the HTML and the best arrival time (updated if exists, else scheduled)
+    return { html, schedRaw: otherStimeRaw };
+  } catch(e) { return null; }
 }
 
 async function fetchOpenSkyHtml(flightId) {
@@ -944,22 +959,44 @@ function progressBarHtml(pct, fromCode, toCode, etaStr) {
   </div>`;
 }
 
-async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw) {
-  // Fallback: tidsbasert framdrift fra rutedata alene
+async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw, arrivalRaw) {
+  // Framdrift basert på tid: bruker faktisk ankomsttid hvis tilgjengelig
   function timeBasedProgress() {
-    const fromCoords = AIRPORT_COORDS[fromCode];
-    const toCoords   = AIRPORT_COORDS[toCode];
-    if (!fromCoords || !toCoords || !schedRaw) return '';
-    const totalKm  = haversineKm(...fromCoords, ...toCoords);
-    const depMs    = new Date(schedRaw).getTime();
-    const elapsedH = (Date.now() - depMs) / 3600000;
-    if (elapsedH < 0 || elapsedH > 24) return '';
-    const totalH   = totalKm / 850;
-    const pct      = Math.min(100, (elapsedH / totalH) * 100);
-    const remH     = Math.max(0, totalH - elapsedH);
-    const eta      = new Date(Date.now() + remH * 3600000)
-      .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'});
-    return progressBarHtml(pct, fromCode, toCode, pct < 100 ? eta : null);
+    if (!schedRaw) return '';
+    const depMs  = new Date(schedRaw).getTime();
+    const now    = Date.now();
+    const elapsedMs = now - depMs;
+    if (elapsedMs < 0) return '';
+
+    let pct, etaStr;
+
+    if (arrivalRaw) {
+      // Interpoler mellom kjent avgang og ankomst
+      const arrMs   = new Date(arrivalRaw).getTime();
+      const totalMs = arrMs - depMs;
+      if (totalMs <= 0) return '';
+      pct = Math.min(100, (elapsedMs / totalMs) * 100);
+      const remMs = Math.max(0, arrMs - now);
+      etaStr = pct < 100
+        ? new Date(arrMs).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+        : null;
+    } else {
+      // Fallback: tidsbasert med estimert distanse
+      const fromCoords = AIRPORT_COORDS[fromCode];
+      const toCoords   = AIRPORT_COORDS[toCode];
+      if (!fromCoords || !toCoords) return '';
+      const totalKm  = haversineKm(...fromCoords, ...toCoords);
+      const totalH   = totalKm / 850;
+      const elapsedH = elapsedMs / 3600000;
+      if (elapsedH > 24) return '';
+      pct = Math.min(100, (elapsedH / totalH) * 100);
+      const remH = Math.max(0, totalH - elapsedH);
+      etaStr = pct < 100
+        ? new Date(now + remH * 3600000).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+        : null;
+    }
+
+    return progressBarHtml(pct, fromCode, toCode, etaStr);
   }
 
   try {
@@ -1014,10 +1051,16 @@ async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw) {
       const doneKm  = haversineKm(fromCoords[0], fromCoords[1], lat, lon);
       const pct     = Math.min(100, (doneKm / totalKm) * 100);
       const remKm   = Math.max(0, totalKm - doneKm);
-      const etaStr  = velocity && velocity > 100
-        ? new Date(Date.now() + (remKm / velocity) * 3600000)
-            .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
-        : null;
+      let etaStr = null;
+      if (arrivalRaw) {
+        // Bruk offisiell ankomsttid direkte
+        etaStr = pct < 100
+          ? new Date(arrivalRaw).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+          : null;
+      } else if (velocity && velocity > 100) {
+        etaStr = new Date(Date.now() + (remKm / velocity) * 3600000)
+          .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'});
+      }
       progressHtml = progressBarHtml(pct, fromCode, toCode, etaStr);
     }
 
@@ -1038,6 +1081,33 @@ async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw) {
 }
 
 boot();
+
+// Generer apple-touch-icon (180x180) via canvas
+(function() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 180;
+  const ctx = c.getContext('2d');
+  const r = 40;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(180-r, 0);
+  ctx.quadraticCurveTo(180, 0, 180, r);
+  ctx.lineTo(180, 180-r);
+  ctx.quadraticCurveTo(180, 180, 180-r, 180);
+  ctx.lineTo(r, 180);
+  ctx.quadraticCurveTo(0, 180, 0, 180-r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#185fa5';
+  ctx.fill();
+  ctx.font = '110px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('✈', 90, 95);
+  const el = document.getElementById('apple-touch-icon');
+  if (el) el.href = c.toDataURL('image/png');
+})();
 </script>
 </body>
 </html>
