@@ -829,12 +829,13 @@ async function toggleExpand(uid, flightId, destCode, schedRaw, domInt) {
   const fromCode = currentDir === 'D' ? document.getElementById('airportSel').value : destCode;
   const toCode   = currentDir === 'D' ? destCode : document.getElementById('airportSel').value;
 
-  // Hent destinasjonsdata først så vi kan bruke faktisk ankomsttid i framdriftsindikatoren
+  // Hent destinasjonsdata for innenriks (gir gate/bånd + ankomsttid for framdrift)
+  // For Schengen/internasjonal: bare bruk schedRaw som fallback for framdrift
   const destResult = domInt === 'D' ? await fetchDestData(flightId, destCode) : null;
-  const arrivalRaw = destResult?.schedRaw || null;  // faktisk rutetid på destinasjon
+  const arrivalRaw = destResult?.schedRaw || null;
   const destHtml   = destResult?.html || '';
 
-  const skyHtml = await fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw, arrivalRaw);
+  const skyHtml = await fetchOpenSkyHtml(uid, flightId, fromCode, toCode, schedRaw, arrivalRaw);
 
   const html = [destHtml, skyHtml].filter(Boolean).join('') ||
     '<div style="font-size:12px;color:var(--text-muted)">Ingen tilleggsdata tilgjengelig</div>';
@@ -1002,7 +1003,7 @@ function progressBarHtml(pct, fromCode, toCode, etaStr) {
   </div>`;
 }
 
-async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw, arrivalRaw) {
+async function fetchOpenSkyHtml(uid, flightId, fromCode, toCode, schedRaw, arrivalRaw) {
   // Framdrift basert på tid: bruker faktisk ankomsttid hvis tilgjengelig
   function timeBasedProgress() {
     if (!schedRaw) return '';
@@ -1043,10 +1044,18 @@ async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw, arrivalRaw
   }
 
   try {
-    // adsb.lol: /v2/callsign/{callsign}
     const callsign = flightId.replace(/\s+/g, '').toUpperCase();
     const url = `${PROXY}/adsb/v2/callsign/${encodeURIComponent(callsign)}`;
     const res = await fetch(url);
+
+    if (res.status === 429) {
+      const fb = timeBasedProgress();
+      const msg = fb || `<div class="expand-section-title">Live posisjon</div>
+        <div class="onground-badge"><span class="dot dot-gray"></span>For mange forespørsler — lukk og prøv igjen</div>`;
+      // Ikke cache 429 — brukeren skal kunne prøve igjen
+      setTimeout(() => delete expandCache[uid], 100);
+      return msg;
+    }
 
     if (!res.ok) return timeBasedProgress();
 
