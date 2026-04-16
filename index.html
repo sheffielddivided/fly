@@ -754,14 +754,16 @@ function renderFlights() {
     const destName = airportNames[destCode] || destCode;
     const airCode  = f.querySelector('airline')?.textContent || '';
     const airName  = airlineNames[airCode] || airCode;
-    const statusEl = f.querySelector('status');
-    const scode    = statusEl?.getAttribute('code') || '';
-    const stime    = statusEl?.getAttribute('time') ? utcToLocal(statusEl.getAttribute('time')) : '';
-    const gate     = f.querySelector('gate')?.textContent || '';
-    const belt     = f.querySelector('belt_number')?.textContent || '';
-    const checkin  = f.querySelector('check_in')?.textContent || '';
-    const viaRaw   = f.querySelector('via_airport')?.textContent || '';
-    const domInt   = f.querySelector('dom_int')?.textContent || '';
+    const statusEl  = f.querySelector('status');
+    const scode     = statusEl?.getAttribute('code') || '';
+    const stime     = statusEl?.getAttribute('time') ? utcToLocal(statusEl.getAttribute('time')) : '';
+    const stimeRaw  = statusEl?.getAttribute('time') || '';
+    const hasNewTime = stimeRaw && stimeRaw !== schedRaw;
+    const gate      = f.querySelector('gate')?.textContent || '';
+    const belt      = f.querySelector('belt_number')?.textContent || '';
+    const checkin   = f.querySelector('check_in')?.textContent || '';
+    const viaRaw    = f.querySelector('via_airport')?.textContent || '';
+    const domInt    = f.querySelector('dom_int')?.textContent || '';
     // Vis kun Ny tid-badge når det faktisk er en annen tid
     const si = scode === 'E' && !hasNewTime ? null : (scode ? statusInfo(scode) : null);
 
@@ -786,8 +788,6 @@ function renderFlights() {
     const toName   = currentDir === 'D' ? destName : homeName;
 
     // Avgangslinje: vis gjennomstreket rutetid + ny tid ved forsinkelse/endring
-    const stimeRaw = statusEl?.getAttribute('time') || '';
-    const hasNewTime = stimeRaw && stimeRaw !== schedRaw;
     const depTimeHtml = hasNewTime
       ? `<span class="route-time-struck">${sched}</span><span class="route-time">${stime}</span>`
       : `<span class="route-time">${sched}</span>`;
