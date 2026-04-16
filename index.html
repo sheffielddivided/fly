@@ -301,6 +301,14 @@ min-width: 48px;
 flex-shrink: 0;
 }
 
+.route-times {
+display: flex;
+align-items: baseline;
+gap: 5px;
+flex-shrink: 0;
+min-width: 48px;
+}
+
 .route-time-struck {
 font-size: 12px;
 font-weight: 400;
@@ -775,7 +783,7 @@ function renderFlights() {
     const fromName = currentDir === 'D' ? homeName : destName;
     const toName   = currentDir === 'D' ? destName : homeName;
 
-    // Avgangslinje: viser tidspunkt + flyplasskode/meta
+    // Avgangslinje: tidspunkt HTML
     const depTimeHtml = stime && stime !== sched
       ? `<span class="route-time-struck">${sched}</span><span class="route-time">${stime}</span>`
       : `<span class="route-time">${sched}</span>`;
@@ -793,7 +801,7 @@ function renderFlights() {
       <div class="route-rows">
         <div class="route-row">
           <div class="route-icon route-icon-dep">▶</div>
-          <div class="route-time" id="dep-time-${uid}">${currentDir === 'D' ? depTimeHtml : '<span style="color:var(--text-hint)">—</span>'}</div>
+          <div class="route-times" id="dep-time-${uid}">${currentDir === 'D' ? depTimeHtml : '<span class="route-time" style="color:var(--text-hint)">—</span>'}</div>
           <div class="route-airport">${fromName} <span class="route-airport-code">(${fromCode})</span></div>
           <div class="route-meta">
             ${gate    ? `<span class="route-meta-item">Gate <strong>${gate}</strong></span>` : ''}
@@ -803,7 +811,7 @@ function renderFlights() {
         <div class="route-connector"><div class="route-connector-line"></div></div>
         <div class="route-row">
           <div class="route-icon route-icon-arr">▼</div>
-          <div class="route-time" id="arr-time-${uid}">${currentDir === 'A' ? depTimeHtml : '<span style="color:var(--text-hint)">—</span>'}</div>
+          <div class="route-times" id="arr-time-${uid}">${currentDir === 'A' ? depTimeHtml : '<span class="route-time" style="color:var(--text-hint)">—</span>'}</div>
           <div class="route-airport">${toName} <span class="route-airport-code">(${toCode})</span></div>
           <div class="route-meta">
             ${belt ? `<span class="route-meta-item">Bånd <strong>${belt}</strong></span>` : ''}
@@ -907,17 +915,18 @@ async function loadCardData(card) {
   ]);
 
   if (currentDir === 'D') {
-    if (extraResult?.schedRaw && arrTimeEl) {
-      arrTimeEl.innerHTML = utcToLocal(extraResult.schedRaw);
+    if (extraResult?.schedRaw) {
+      const el = document.getElementById(`arr-time-${uid}`);
+      if (el) el.innerHTML = `<span class="route-time">${utcToLocal(extraResult.schedRaw)}</span>`;
     }
     const arrivalRaw = extraResult?.schedRaw || null;
     const progressHtml = buildProgressHtml(fromCode, toCode, depRaw || schedRaw, arrivalRaw);
     const parts = [extraResult?.html || '', skyHtml, progressHtml].filter(Boolean);
     panel.innerHTML = parts.join('') || '';
   } else {
-    const depTimeEl = document.getElementById(`dep-time-${uid}`);
-    if (extraResult?.schedRaw && depTimeEl) {
-      depTimeEl.innerHTML = utcToLocal(extraResult.schedRaw);
+    if (extraResult?.schedRaw) {
+      const el = document.getElementById(`dep-time-${uid}`);
+      if (el) el.innerHTML = `<span class="route-time">${utcToLocal(extraResult.schedRaw)}</span>`;
     }
     const progressHtml = buildProgressHtml(fromCode, toCode,
       extraResult?.schedRaw || depRaw, schedRaw);
