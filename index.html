@@ -784,8 +784,10 @@ function renderFlights() {
     const fromName = currentDir === 'D' ? homeName : destName;
     const toName   = currentDir === 'D' ? destName : homeName;
 
-    // Avgangslinje: tidspunkt HTML
-    const depTimeHtml = stime && stime !== sched
+    // Avgangslinje: vis gjennomstreket rutetid + ny tid ved forsinkelse/endring
+    const stimeRaw = statusEl?.getAttribute('time') || '';
+    const hasNewTime = stimeRaw && stimeRaw !== schedRaw;
+    const depTimeHtml = hasNewTime
       ? `<span class="route-time-struck">${sched}</span><span class="route-time">${stime}</span>`
       : `<span class="route-time">${sched}</span>`;
 
@@ -1007,9 +1009,8 @@ async function fetchDestData(flightId, destCode) {
 
     // Bare vis ekstra info hvis det finnes (gate/bånd på dest) — ingen seksjonstittel
     let html = '';
-    if (hasMeta || otherSi) {
+    if (hasMeta) {
       const parts = [];
-      if (otherSi) parts.push(`<span class="badge ${otherSi.cls}">${otherSi.label}</span>`);
       if (otherGate)    parts.push(`<span class="route-meta-item">Gate <strong>${otherGate}</strong></span>`);
       if (otherCheckin) parts.push(`<span class="route-meta-item">Innsjekk <strong>${otherCheckin}</strong></span>`);
       if (otherBelt)    parts.push(`<span class="route-meta-item">Bagasjebånd <strong>${otherBelt}</strong></span>`);
