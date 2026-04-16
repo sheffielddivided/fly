@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="nb">
 <head>
 <meta charset="UTF-8">
@@ -14,483 +15,484 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg: #f0f4f8;
-    --surface: #ffffff;
-    --border: rgba(0,0,0,0.1);
-    --border-strong: rgba(0,0,0,0.22);
-    --text: #1a1a18;
-    --text-muted: #6b6b67;
-    --text-hint: #9c9a94;
-    --info-bg: #deeefb;
-    --info-text: #0c447c;
-    --info-border: #9dc8f0;
-    --success-bg: #e0f2d4;
-    --success-text: #1e4a08;
-    --warning-bg: #fef0d0;
-    --warning-text: #5a3200;
-    --danger-bg: #fde8e8;
-    --danger-text: #6e1a1a;
-    --accent: #185fa5;
-    --accent-light: #deeefb;
-    --radius: 8px;
-    --radius-lg: 14px;
-  }
+:root {
+–bg: #f0f4f8;
+–surface: #ffffff;
+–border: rgba(0,0,0,0.1);
+–border-strong: rgba(0,0,0,0.22);
+–text: #1a1a18;
+–text-muted: #6b6b67;
+–text-hint: #9c9a94;
+–info-bg: #deeefb;
+–info-text: #0c447c;
+–info-border: #9dc8f0;
+–success-bg: #e0f2d4;
+–success-text: #1e4a08;
+–warning-bg: #fef0d0;
+–warning-text: #5a3200;
+–danger-bg: #fde8e8;
+–danger-text: #6e1a1a;
+–accent: #185fa5;
+–accent-light: #deeefb;
+–radius: 8px;
+–radius-lg: 14px;
+}
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #13151a;
-      --surface: #1e2128;
-      --border: rgba(255,255,255,0.09);
-      --border-strong: rgba(255,255,255,0.18);
-      --text: #e8e6df;
-      --text-muted: #9c9a92;
-      --text-hint: #6b6b67;
-      --info-bg: #0d3560;
-      --info-text: #8ec8f8;
-      --info-border: #185fa5;
-      --success-bg: #1a3d08;
-      --success-text: #a8d878;
-      --warning-bg: #4a2800;
-      --warning-text: #f8c060;
-      --danger-bg: #4a0f0f;
-      --danger-text: #f89090;
-      --accent: #2878c8;
-      --accent-light: #0d3560;
-    }
-  }
+@media (prefers-color-scheme: dark) {
+:root {
+–bg: #13151a;
+–surface: #1e2128;
+–border: rgba(255,255,255,0.09);
+–border-strong: rgba(255,255,255,0.18);
+–text: #e8e6df;
+–text-muted: #9c9a92;
+–text-hint: #6b6b67;
+–info-bg: #0d3560;
+–info-text: #8ec8f8;
+–info-border: #185fa5;
+–success-bg: #1a3d08;
+–success-text: #a8d878;
+–warning-bg: #4a2800;
+–warning-text: #f8c060;
+–danger-bg: #4a0f0f;
+–danger-text: #f89090;
+–accent: #2878c8;
+–accent-light: #0d3560;
+}
+}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 16px;
-    line-height: 1.5;
-  }
+body {
+font-family: -apple-system, BlinkMacSystemFont, ‘Segoe UI’, sans-serif;
+background: var(–bg);
+color: var(–text);
+min-height: 100vh;
+font-size: 16px;
+line-height: 1.5;
+}
 
-  .app { max-width: 480px; margin: 0 auto; }
+.app { max-width: 480px; margin: 0 auto; }
 
-  .header {
-    background: var(--accent);
-    border-bottom: none;
-    padding: 1rem 1.25rem 0.75rem;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
+.header {
+background: var(–accent);
+border-bottom: none;
+padding: 1rem 1.25rem 0.75rem;
+position: sticky;
+top: 0;
+z-index: 10;
+}
 
-  .header h1 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    letter-spacing: -0.3px;
-  }
+.header h1 {
+font-size: 20px;
+font-weight: 600;
+margin-bottom: 0.75rem;
+color: #ffffff;
+display: flex;
+align-items: center;
+gap: 8px;
+letter-spacing: -0.3px;
+}
 
-  .header h1 .logo-icon {
-    width: 30px;
-    height: 30px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-    flex-shrink: 0;
-  }
+.header h1 .logo-icon {
+width: 30px;
+height: 30px;
+background: rgba(255,255,255,0.2);
+border-radius: 8px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 17px;
+flex-shrink: 0;
+}
 
-  .controls {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+.controls {
+display: flex;
+gap: 8px;
+flex-wrap: wrap;
+}
 
-  .controls select {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 10px;
-    border: 0.5px solid rgba(255,255,255,0.3);
-    border-radius: var(--radius);
-    background: rgba(255,255,255,0.15);
-    color: #ffffff;
-    font-size: 14px;
-  }
+.controls select {
+flex: 1;
+min-width: 0;
+padding: 8px 10px;
+border: 0.5px solid rgba(255,255,255,0.3);
+border-radius: var(–radius);
+background: rgba(255,255,255,0.15);
+color: #ffffff;
+font-size: 14px;
+}
 
-  .controls select option {
-    background: var(--surface);
-    color: var(--text);
-  }
+.controls select option {
+background: var(–surface);
+color: var(–text);
+}
 
-  .search-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-  }
+.search-row {
+display: flex;
+gap: 8px;
+margin-top: 8px;
+}
 
-  .search-input {
-    flex: 1;
-    padding: 8px 10px;
-    border: 0.5px solid rgba(255,255,255,0.3);
-    border-radius: var(--radius);
-    background: rgba(255,255,255,0.15);
-    color: #ffffff;
-    font-size: 14px;
-  }
+.search-input {
+flex: 1;
+padding: 8px 10px;
+border: 0.5px solid rgba(255,255,255,0.3);
+border-radius: var(–radius);
+background: rgba(255,255,255,0.15);
+color: #ffffff;
+font-size: 14px;
+}
 
-  .search-input::placeholder { color: rgba(255,255,255,0.55); }
+.search-input::placeholder { color: rgba(255,255,255,0.55); }
 
-  .search-clear {
-    padding: 8px 12px;
-    border: 0.5px solid rgba(255,255,255,0.3);
-    border-radius: var(--radius);
-    background: rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.85);
-    font-size: 13px;
-    cursor: pointer;
-    display: none;
-  }
+.search-clear {
+padding: 8px 12px;
+border: 0.5px solid rgba(255,255,255,0.3);
+border-radius: var(–radius);
+background: rgba(255,255,255,0.15);
+color: rgba(255,255,255,0.85);
+font-size: 13px;
+cursor: pointer;
+display: none;
+}
 
-  .dir-toggle {
-    display: flex;
-    gap: 4px;
-  }
+.dir-toggle {
+display: flex;
+gap: 4px;
+}
 
-  .dir-btn {
-    padding: 8px 14px;
-    border: 0.5px solid rgba(255,255,255,0.3);
-    border-radius: var(--radius);
-    background: rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.85);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-  }
+.dir-btn {
+padding: 8px 14px;
+border: 0.5px solid rgba(255,255,255,0.3);
+border-radius: var(–radius);
+background: rgba(255,255,255,0.15);
+color: rgba(255,255,255,0.85);
+font-size: 13px;
+font-weight: 500;
+cursor: pointer;
+white-space: nowrap;
+transition: all 0.15s;
+}
 
-  .dir-btn.active {
-    background: #ffffff;
-    color: var(--accent);
-    border-color: #ffffff;
-  }
+.dir-btn.active {
+background: #ffffff;
+color: var(–accent);
+border-color: #ffffff;
+}
 
-  .content { padding: 1rem 1.25rem; }
+.content { padding: 1rem 1.25rem; }
 
-  .now-marker {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0.5rem 0;
-    scroll-margin-top: 80px;
-  }
+.now-marker {
+display: flex;
+align-items: center;
+gap: 8px;
+margin: 0.5rem 0;
+scroll-margin-top: 80px;
+}
 
-  .now-marker-line {
-    flex: 1;
-    height: 1.5px;
-    background: var(--accent);
-    opacity: 0.4;
-  }
+.now-marker-line {
+flex: 1;
+height: 1.5px;
+background: var(–accent);
+opacity: 0.4;
+}
 
-  .now-marker-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: #fff;
-    background: var(--accent);
-    padding: 3px 10px;
-    border-radius: 99px;
-    white-space: nowrap;
-  }
+.now-marker-label {
+font-size: 11px;
+font-weight: 600;
+color: #fff;
+background: var(–accent);
+padding: 3px 10px;
+border-radius: 99px;
+white-space: nowrap;
+}
 
-  .history-toggle {
-    text-align: center;
-    margin-bottom: 0.75rem;
-  }
+.history-toggle {
+text-align: center;
+margin-bottom: 0.75rem;
+}
 
-  .history-btn {
-    font-size: 13px;
-    color: var(--accent);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 8px;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
+.history-btn {
+font-size: 13px;
+color: var(–accent);
+background: none;
+border: none;
+cursor: pointer;
+padding: 4px 8px;
+text-decoration: underline;
+text-underline-offset: 2px;
+}
 
-  .flight-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 0.875rem 1rem;
-    margin-bottom: 0.625rem;
-  }
+.flight-card {
+background: var(–surface);
+border: 0.5px solid var(–border);
+border-radius: var(–radius-lg);
+padding: 0.875rem 1rem;
+margin-bottom: 0.625rem;
+}
 
-  .flight-card.past { border-left: 3px solid var(--border-strong); }
+.flight-card.past { border-left: 3px solid var(–border-strong); }
 
-  .flight-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
+.flight-top {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 6px;
+}
 
-  .flight-top-left { display: flex; align-items: center; gap: 8px; }
-  .flight-id { font-size: 15px; font-weight: 500; }
-  .airline-chip {
-    font-size: 11px;
-    color: var(--text-muted);
-    background: var(--bg);
-    padding: 2px 7px;
-    border-radius: 99px;
-    border: 0.5px solid var(--border);
-  }
+.flight-top-left { display: flex; align-items: center; gap: 8px; }
+.flight-id { font-size: 15px; font-weight: 500; }
+.airline-chip {
+font-size: 11px;
+color: var(–text-muted);
+background: var(–bg);
+padding: 2px 7px;
+border-radius: 99px;
+border: 0.5px solid var(–border);
+}
 
-  .badge {
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: var(--radius);
-    font-weight: 500;
-    flex-shrink: 0;
-  }
+.badge {
+font-size: 11px;
+padding: 3px 8px;
+border-radius: var(–radius);
+font-weight: 500;
+flex-shrink: 0;
+}
 
-  .badge-arrived, .badge-departed { background: var(--success-bg); color: var(--success-text); }
-  .badge-cancelled { background: var(--danger-bg); color: var(--danger-text); }
-  .badge-delayed { background: var(--warning-bg); color: var(--warning-text); }
-  .badge-info { background: var(--info-bg); color: var(--info-text); }
+.badge-arrived, .badge-departed { background: var(–success-bg); color: var(–success-text); }
+.badge-cancelled { background: var(–danger-bg); color: var(–danger-text); }
+.badge-delayed { background: var(–warning-bg); color: var(–warning-text); }
+.badge-info { background: var(–info-bg); color: var(–info-text); }
 
-  /* Fra/til rader */
-  .route-rows { display: flex; flex-direction: column; gap: 4px; }
+/* Fra/til rader */
+.route-rows { display: flex; flex-direction: column; gap: 4px; }
 
-  .route-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.route-row {
+display: flex;
+align-items: center;
+gap: 10px;
+}
 
-  .route-icon {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    flex-shrink: 0;
-  }
+.route-icon {
+width: 22px;
+height: 22px;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 11px;
+flex-shrink: 0;
+}
 
-  .route-icon-dep {
-    background: var(--accent);
-    color: #fff;
-  }
+.route-icon-dep {
+background: var(–accent);
+color: #fff;
+}
 
-  .route-icon-arr {
-    background: var(--bg);
-    border: 0.5px solid var(--border-strong);
-    color: var(--text-muted);
-  }
+.route-icon-arr {
+background: var(–bg);
+border: 0.5px solid var(–border-strong);
+color: var(–text-muted);
+}
 
-  .route-time {
-    font-size: 18px;
-    font-weight: 500;
-    min-width: 48px;
-    flex-shrink: 0;
-  }
+.route-time {
+font-size: 18px;
+font-weight: 500;
+min-width: 48px;
+flex-shrink: 0;
+}
 
-  .route-time-struck {
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-hint);
-    text-decoration: line-through;
-    margin-right: 2px;
-  }
+.route-time-struck {
+font-size: 12px;
+font-weight: 400;
+color: var(–text-hint);
+text-decoration: line-through;
+margin-right: 2px;
+}
 
-  .route-airport {
-    font-size: 13px;
-    color: var(--text);
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.route-airport {
+font-size: 13px;
+color: var(–text);
+flex: 1;
+min-width: 0;
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
 
-  .route-airport-code {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: 3px;
-  }
+.route-airport-code {
+font-size: 11px;
+color: var(–text-muted);
+margin-left: 3px;
+}
 
-  .route-meta {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
+.route-meta {
+display: flex;
+gap: 8px;
+flex-shrink: 0;
+flex-wrap: wrap;
+justify-content: flex-end;
+}
 
-  .route-meta-item {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+.route-meta-item {
+font-size: 11px;
+color: var(–text-muted);
+}
 
-  .route-meta-item strong {
-    color: var(--text);
-    font-weight: 500;
-  }
+.route-meta-item strong {
+color: var(–text);
+font-weight: 500;
+}
 
-  .route-connector {
-    display: flex;
-    align-items: center;
-    padding: 0 0 0 9px;
-    height: 6px;
-  }
+.route-connector {
+display: flex;
+align-items: center;
+padding: 0 0 0 9px;
+height: 6px;
+}
 
-  .route-connector-line {
-    width: 1px;
-    height: 6px;
-    background: var(--border-strong);
-    margin-left: 1px;
-  }
+.route-connector-line {
+width: 1px;
+height: 6px;
+background: var(–border-strong);
+margin-left: 1px;
+}
 
-  .via-row { font-size: 11px; color: var(--text-muted); margin: 2px 0 0 32px; }
+.via-row { font-size: 11px; color: var(–text-muted); margin: 2px 0 0 32px; }
 
-  /* Auto-expanded data panel */
-  .auto-panel {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 0.5px solid var(--border);
-    min-height: 20px;
-  }
+/* Auto-expanded data panel */
+.auto-panel {
+margin-top: 8px;
+padding-top: 8px;
+border-top: 0.5px solid var(–border);
+min-height: 20px;
+}
 
-  .auto-panel.loading { opacity: 0.5; }
+.auto-panel.loading { opacity: 0.5; }
 
-  .expand-section-title {
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-hint);
-    margin: 8px 0 5px;
-  }
+.expand-section-title {
+font-size: 10px;
+font-weight: 500;
+text-transform: uppercase;
+letter-spacing: 0.06em;
+color: var(–text-hint);
+margin: 8px 0 5px;
+}
 
-  .expand-section-title:first-child { margin-top: 0; }
+.expand-section-title:first-child { margin-top: 0; }
 
-  .live-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-  }
+.live-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 5px;
+}
 
-  .live-cell {
-    background: var(--bg);
-    border-radius: var(--radius);
-    padding: 7px 9px;
-  }
+.live-cell {
+background: var(–bg);
+border-radius: var(–radius);
+padding: 7px 9px;
+}
 
-  .live-cell-label { font-size: 10px; color: var(--text-hint); margin-bottom: 1px; }
-  .live-cell-value { font-size: 14px; font-weight: 500; color: var(--text); }
-  .live-cell-unit { font-size: 10px; color: var(--text-muted); margin-left: 2px; }
+.live-cell-label { font-size: 10px; color: var(–text-hint); margin-bottom: 1px; }
+.live-cell-value { font-size: 14px; font-weight: 500; color: var(–text); }
+.live-cell-unit { font-size: 10px; color: var(–text-muted); margin-left: 2px; }
 
-  .onground-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    color: var(--text-muted);
-    background: var(--bg);
-    border-radius: var(--radius);
-    padding: 4px 9px;
-    margin-bottom: 4px;
-  }
+.onground-badge {
+display: inline-flex;
+align-items: center;
+gap: 5px;
+font-size: 12px;
+color: var(–text-muted);
+background: var(–bg);
+border-radius: var(–radius);
+padding: 4px 9px;
+margin-bottom: 4px;
+}
 
-  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .dot-green { background: #4caf50; }
-  .dot-gray  { background: var(--text-hint); }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: #4caf50; }
+.dot-gray  { background: var(–text-hint); }
 
-  .progress-wrap { margin-top: 6px; }
-  .progress-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 5px;
-  }
-  .progress-airport { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .progress-track {
-    position: relative;
-    height: 4px;
-    background: var(--border);
-    border-radius: 99px;
-    margin-bottom: 6px;
-  }
-  .progress-fill {
-    height: 100%;
-    background: var(--accent);
-    opacity: 0.5;
-    border-radius: 99px;
-  }
-  .progress-plane {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 14px;
-    line-height: 1;
-  }
-  .progress-pct { font-size: 11px; color: var(--text-muted); text-align: center; }
+.progress-wrap { margin-top: 6px; }
+.progress-labels {
+display: flex;
+justify-content: space-between;
+font-size: 11px;
+color: var(–text-muted);
+margin-bottom: 5px;
+}
+.progress-airport { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progress-track {
+position: relative;
+height: 4px;
+background: var(–border);
+border-radius: 99px;
+margin-bottom: 6px;
+}
+.progress-fill {
+height: 100%;
+background: var(–accent);
+opacity: 0.5;
+border-radius: 99px;
+}
+.progress-plane {
+position: absolute;
+top: 50%;
+transform: translateY(-50%);
+font-size: 14px;
+line-height: 1;
+}
+.progress-pct { font-size: 11px; color: var(–text-muted); text-align: center; }
 
-  .empty, .loading-msg {
-    text-align: center;
-    padding: 2.5rem 1rem;
-    color: var(--text-muted);
-    font-size: 14px;
-  }
+.empty, .loading-msg {
+text-align: center;
+padding: 2.5rem 1rem;
+color: var(–text-muted);
+font-size: 14px;
+}
 
-  .error-msg {
-    background: var(--danger-bg);
-    color: var(--danger-text);
-    border: 0.5px solid var(--danger-text);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    font-size: 13px;
-    margin-bottom: 1rem;
-  }
+.error-msg {
+background: var(–danger-bg);
+color: var(–danger-text);
+border: 0.5px solid var(–danger-text);
+border-radius: var(–radius);
+padding: 0.75rem 1rem;
+font-size: 13px;
+margin-bottom: 1rem;
+}
 
-  .attribution {
-    text-align: center;
-    padding: 1.5rem 0 2rem;
-    font-size: 12px;
-    color: var(--text-hint);
-  }
+.attribution {
+text-align: center;
+padding: 1.5rem 0 2rem;
+font-size: 12px;
+color: var(–text-hint);
+}
 
-  .attribution a { color: var(--info-text); }
+.attribution a { color: var(–info-text); }
 
-  .spinner {
-    display: inline-block;
-    width: 14px; height: 14px;
-    border: 2px solid var(--border);
-    border-top-color: var(--info-text);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 6px;
-  }
+.spinner {
+display: inline-block;
+width: 14px; height: 14px;
+border: 2px solid var(–border);
+border-top-color: var(–info-text);
+border-radius: 50%;
+animation: spin 0.7s linear infinite;
+vertical-align: middle;
+margin-right: 6px;
+}
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  .mini-spinner {
-    display: inline-block;
-    width: 11px; height: 11px;
-    border: 1.5px solid var(--border);
-    border-top-color: var(--info-text);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    flex-shrink: 0;
-  }
+.mini-spinner {
+display: inline-block;
+width: 11px; height: 11px;
+border: 1.5px solid var(–border);
+border-top-color: var(–info-text);
+border-radius: 50%;
+animation: spin 0.7s linear infinite;
+flex-shrink: 0;
+}
 </style>
+
 </head>
 <body>
 <div class="app">
@@ -791,7 +793,7 @@ function renderFlights() {
       <div class="route-rows">
         <div class="route-row">
           <div class="route-icon route-icon-dep">▶</div>
-          ${depTimeHtml}
+          <div class="route-time" id="dep-time-${uid}">${currentDir === 'D' ? depTimeHtml : '<span style="color:var(--text-hint)">—</span>'}</div>
           <div class="route-airport">${fromName} <span class="route-airport-code">(${fromCode})</span></div>
           <div class="route-meta">
             ${gate    ? `<span class="route-meta-item">Gate <strong>${gate}</strong></span>` : ''}
@@ -801,7 +803,7 @@ function renderFlights() {
         <div class="route-connector"><div class="route-connector-line"></div></div>
         <div class="route-row">
           <div class="route-icon route-icon-arr">▼</div>
-          <span class="route-time" id="arr-time-${uid}">—</span>
+          <div class="route-time" id="arr-time-${uid}">${currentDir === 'A' ? depTimeHtml : '<span style="color:var(--text-hint)">—</span>'}</div>
           <div class="route-airport">${toName} <span class="route-airport-code">(${toCode})</span></div>
           <div class="route-meta">
             ${belt ? `<span class="route-meta-item">Bånd <strong>${belt}</strong></span>` : ''}
@@ -878,32 +880,65 @@ async function loadCardData(card) {
   const arrTimeEl = document.getElementById(`arr-time-${uid}`);
   if (!panel) return;
 
-  // Hent dest-data (Avinor) og ADS-B parallelt
-  const [destResult, skyHtml] = await Promise.all([
-    domInt === 'D' ? fetchDestData(flightId, toCode) : fetchDestDataSchengen(flightId, toCode),
-    // ADS-B køes for å respektere rate limit
+  // For avganger: hent data fra destinasjonsflyplass (ankomstinfo)
+  // For ankomster: hent data fra avreiseflyplass (avgangstidspunkt der)
+  const fetchExtra = async () => {
+    if (currentDir === 'D') {
+      // Avganger: hent ankomstdata på dest
+      return domInt === 'D'
+        ? fetchDestData(flightId, toCode)
+        : fetchDestDataSchengen(flightId, toCode);
+    } else {
+      // Ankomster: hent avgangstid fra avreiseflyplass (fromCode)
+      return fetchOriginDepTime(flightId, fromCode);
+    }
+  };
+
+  const [extraResult, skyHtml] = await Promise.all([
+    fetchExtra(),
     new Promise(resolve => {
       adsbQueue = adsbQueue.then(() =>
         new Promise(r => setTimeout(r, 300))
       ).then(() =>
-        fetchOpenSkyHtml(uid, flightId, fromCode, toCode, depRaw || schedRaw,
-          null /* arrivalRaw settes etter dest-data er klar */)
+        fetchOpenSkyHtml(uid, flightId, fromCode, toCode, depRaw || schedRaw, null)
         .then(resolve)
       );
     }),
   ]);
 
-  // Oppdater ankomsttid i til-raden
-  if (destResult?.schedRaw && arrTimeEl) {
-    arrTimeEl.textContent = utcToLocal(destResult.schedRaw);
+  if (currentDir === 'D') {
+    if (extraResult?.schedRaw && arrTimeEl) {
+      arrTimeEl.innerHTML = utcToLocal(extraResult.schedRaw);
+    }
+    const arrivalRaw = extraResult?.schedRaw || null;
+    const progressHtml = buildProgressHtml(fromCode, toCode, depRaw || schedRaw, arrivalRaw);
+    const parts = [extraResult?.html || '', skyHtml, progressHtml].filter(Boolean);
+    panel.innerHTML = parts.join('') || '';
+  } else {
+    const depTimeEl = document.getElementById(`dep-time-${uid}`);
+    if (extraResult?.schedRaw && depTimeEl) {
+      depTimeEl.innerHTML = utcToLocal(extraResult.schedRaw);
+    }
+    const progressHtml = buildProgressHtml(fromCode, toCode,
+      extraResult?.schedRaw || depRaw, schedRaw);
+    const parts = [skyHtml, progressHtml].filter(Boolean);
+    panel.innerHTML = parts.join('') || '';
   }
+}
 
-  // Kjør framdrift på nytt med riktig ankomsttid
-  const arrivalRaw = destResult?.schedRaw || null;
-  const progressHtml = buildProgressHtml(fromCode, toCode, depRaw || schedRaw, arrivalRaw);
-
-  const parts = [destResult?.html || '', skyHtml, progressHtml].filter(Boolean);
-  panel.innerHTML = parts.join('') || '';
+// Hent avgangstid fra avreiseflyplass (for ankomster)
+async function fetchOriginDepTime(flightId, originCode) {
+  try {
+    const xml = await fetchXML(`/XmlFeed/v1.0?airport=${originCode}&TimeFrom=4&TimeTo=25&direction=D`);
+    const match = [...xml.querySelectorAll('flight')].find(f =>
+      (f.querySelector('flight_id')?.textContent || '').trim() === flightId.trim()
+    );
+    if (!match) return null;
+    const schedRaw     = match.querySelector('schedule_time')?.textContent || '';
+    const statusEl     = match.querySelector('status');
+    const otherStimeRaw = statusEl?.getAttribute('time') || schedRaw;
+    return { html: '', schedRaw: otherStimeRaw };
+  } catch(e) { return null; }
 }
 
 // Hent ankomstdata for Schengen/internasjonal (bare tid, gate, bånd — ingen destinfopanel)
@@ -961,28 +996,25 @@ async function fetchDestData(flightId, destCode) {
     );
     if (!match) return null;
 
-    const schedRaw     = match.querySelector('schedule_time')?.textContent || '';
-    const statusEl     = match.querySelector('status');
-    const otherScode   = statusEl?.getAttribute('code') || '';
+    const schedRaw      = match.querySelector('schedule_time')?.textContent || '';
+    const statusEl      = match.querySelector('status');
+    const otherScode    = statusEl?.getAttribute('code') || '';
     const otherStimeRaw = statusEl?.getAttribute('time') || schedRaw;
-    const otherGate    = match.querySelector('gate')?.textContent || '';
-    const otherBelt    = match.querySelector('belt_number')?.textContent || '';
-    const otherCheckin = match.querySelector('check_in')?.textContent || '';
-    const otherSi      = otherScode ? statusInfo(otherScode) : null;
-    const hasMeta      = otherGate || otherBelt || otherCheckin;
+    const otherGate     = match.querySelector('gate')?.textContent || '';
+    const otherBelt     = match.querySelector('belt_number')?.textContent || '';
+    const otherCheckin  = match.querySelector('check_in')?.textContent || '';
+    const otherSi       = otherScode ? statusInfo(otherScode) : null;
+    const hasMeta       = otherGate || otherBelt || otherCheckin;
 
-    // Build small dest-meta panel (gate/belt at destination)
+    // Bare vis ekstra info hvis det finnes (gate/bånd på dest) — ingen seksjonstittel
     let html = '';
     if (hasMeta || otherSi) {
-      html += `<div class="expand-section-title">På ${airportNames[destCode] || destCode}</div>`;
-      if (otherSi) html += `<span class="badge ${otherSi.cls}" style="margin-bottom:6px;display:inline-block">${otherSi.label}</span> `;
-      if (hasMeta) {
-        html += `<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)">
-          ${otherGate    ? `<span>Gate <strong style="color:var(--text)">${otherGate}</strong></span>` : ''}
-          ${otherCheckin ? `<span>Innsjekk <strong style="color:var(--text)">${otherCheckin}</strong></span>` : ''}
-          ${otherBelt    ? `<span>Bagasjebånd <strong style="color:var(--text)">${otherBelt}</strong></span>` : ''}
-        </div>`;
-      }
+      const parts = [];
+      if (otherSi) parts.push(`<span class="badge ${otherSi.cls}">${otherSi.label}</span>`);
+      if (otherGate)    parts.push(`<span class="route-meta-item">Gate <strong>${otherGate}</strong></span>`);
+      if (otherCheckin) parts.push(`<span class="route-meta-item">Innsjekk <strong>${otherCheckin}</strong></span>`);
+      if (otherBelt)    parts.push(`<span class="route-meta-item">Bagasjebånd <strong>${otherBelt}</strong></span>`);
+      html = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px">${parts.join('')}</div>`;
     }
 
     return { html, schedRaw: otherStimeRaw };
@@ -1148,5 +1180,6 @@ boot();
   if (el) el.href = c.toDataURL('image/png');
 })();
 </script>
+
 </body>
 </html>
