@@ -447,7 +447,8 @@ async function fetchXML(path) {
   const res = await fetch(PROXY + path);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const txt = await res.text();
-  return new DOMParser().parseFromString(txt, 'text/xml');
+  const fixed = txt.replace(/encoding="[^"]+"/i, 'encoding="UTF-8"');
+  return new DOMParser().parseFromString(fixed, 'text/xml');
 }
 
 async function fetchFlights() {
