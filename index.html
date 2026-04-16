@@ -78,16 +78,47 @@
   .controls {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
   }
 
   .controls select {
     flex: 1;
+    min-width: 0;
     padding: 8px 10px;
     border: 0.5px solid var(--border-strong);
     border-radius: var(--radius);
     background: var(--bg);
     color: var(--text);
     font-size: 14px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .search-input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .search-input::placeholder { color: var(--text-hint); }
+
+  .search-clear {
+    padding: 8px 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: none;
   }
 
   .dir-toggle {
@@ -365,6 +396,10 @@
         <button class="dir-btn" id="btn-A" onclick="setDir('A')">Ank</button>
       </div>
     </div>
+    <div class="search-row">
+      <input class="search-input" id="searchInput" type="search" placeholder="Søk flightnr, destinasjon, selskap…" oninput="onSearch()" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">Tøm</button>
+    </div>
   </div>
 
   <div class="content">
@@ -387,6 +422,7 @@ const PROXY = 'https://avino-proxy.batil-kjekken.workers.dev';
 
 let currentDir = 'D';
 let showHistory = false;
+let searchQuery = '';
 let airportNames = {};
 let airlineNames = {};
 let allFlights = [];
@@ -419,6 +455,19 @@ async function loadAirlineNames() {
   } catch(e) {}
 }
 
+function onSearch() {
+  searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+  document.getElementById('searchClear').style.display = searchQuery ? 'block' : 'none';
+  renderFlights();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  renderFlights();
+}
+
 function setDir(dir) {
   currentDir = dir;
   document.getElementById('btn-D').classList.toggle('active', dir === 'D');
@@ -426,11 +475,13 @@ function setDir(dir) {
   document.getElementById('historyBtnTxt').textContent =
     dir === 'D' ? 'Vis tidligere avganger' : 'Vis tidligere ankomster';
   showHistory = false;
+  clearSearch();
   fetchFlights();
 }
 
 function reload() {
   showHistory = false;
+  clearSearch();
   fetchFlights();
 }
 
@@ -501,6 +552,21 @@ function renderFlights() {
     const isPast   = schedMs < now;
 
     if (isPast && !showHistory) return;
+
+    // Search filter
+    if (searchQuery) {
+      const destName = airportNames[f.querySelector('airport')?.textContent || ''] || '';
+      const airName  = airlineNames[f.querySelector('airline')?.textContent || ''] || '';
+      const haystack = [
+        f.querySelector('flight_id')?.textContent || '',
+        f.querySelector('airport')?.textContent || '',
+        destName,
+        f.querySelector('airline')?.textContent || '',
+        airName,
+        f.querySelector('via_airport')?.textContent || '',
+      ].join(' ').toLowerCase();
+      if (!haystack.includes(searchQuery)) return;
+    }
 
     if (i === nowMarkerIndex) {
       html += `<div class="now-marker" id="now-marker">
