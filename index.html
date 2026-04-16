@@ -60,7 +60,6 @@
 
   .app { max-width: 480px; margin: 0 auto; }
 
-  /* Header */
   .header {
     background: var(--surface);
     border-bottom: 0.5px solid var(--border);
@@ -74,21 +73,14 @@
     font-size: 18px;
     font-weight: 500;
     margin-bottom: 0.75rem;
+  }
+
+  .controls {
     display: flex;
-    align-items: center;
     gap: 8px;
   }
 
-  .header h1 span { font-size: 16px; }
-
-  .airport-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 0.75rem;
-    align-items: center;
-  }
-
-  .airport-row select {
+  .controls select {
     flex: 1;
     padding: 8px 10px;
     border: 0.5px solid var(--border-strong);
@@ -98,64 +90,72 @@
     font-size: 14px;
   }
 
-  .tab-row { display: flex; gap: 4px; }
+  .dir-toggle {
+    display: flex;
+    gap: 4px;
+  }
 
-  .tab {
-    flex: 1;
-    padding: 7px 4px;
+  .dir-btn {
+    padding: 8px 14px;
     border: 0.5px solid var(--border);
     border-radius: var(--radius);
     background: transparent;
     color: var(--text-muted);
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    text-align: center;
+    white-space: nowrap;
     transition: all 0.15s;
   }
 
-  .tab.active {
+  .dir-btn.active {
     background: var(--info-bg);
     color: var(--info-text);
     border-color: var(--info-border);
   }
 
-  /* Content */
   .content { padding: 1rem 1.25rem; }
 
-  .filter-row {
+  .now-marker {
     display: flex;
+    align-items: center;
     gap: 8px;
-    margin-bottom: 0.875rem;
+    margin: 0.5rem 0;
+    scroll-margin-top: 80px;
   }
 
-  .filter-row select {
+  .now-marker-line {
     flex: 1;
-    padding: 7px 10px;
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 13px;
+    height: 1px;
+    background: var(--info-border);
   }
 
-  .fetch-btn {
-    width: 100%;
-    padding: 10px;
-    background: var(--info-bg);
-    color: var(--info-text);
-    border: 0.5px solid var(--info-border);
-    border-radius: var(--radius);
-    font-size: 14px;
+  .now-marker-label {
+    font-size: 11px;
     font-weight: 500;
-    cursor: pointer;
-    margin-bottom: 1rem;
-    transition: opacity 0.15s;
+    color: var(--info-text);
+    background: var(--info-bg);
+    padding: 2px 8px;
+    border-radius: 99px;
+    white-space: nowrap;
   }
 
-  .fetch-btn:active { opacity: 0.75; }
-  .fetch-btn:disabled { opacity: 0.5; cursor: default; }
+  .history-toggle {
+    text-align: center;
+    margin-bottom: 0.75rem;
+  }
 
-  /* Flight cards */
+  .history-btn {
+    font-size: 13px;
+    color: var(--info-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   .flight-card {
     background: var(--surface);
     border: 0.5px solid var(--border);
@@ -164,11 +164,13 @@
     margin-bottom: 0.625rem;
   }
 
+  .flight-card.past { opacity: 0.5; }
+
   .flight-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 4px;
+    margin-bottom: 1px;
   }
 
   .flight-id { font-size: 15px; font-weight: 500; }
@@ -178,12 +180,19 @@
     padding: 3px 8px;
     border-radius: var(--radius);
     font-weight: 500;
+    flex-shrink: 0;
   }
 
   .badge-arrived, .badge-departed { background: var(--success-bg); color: var(--success-text); }
   .badge-cancelled { background: var(--danger-bg); color: var(--danger-text); }
   .badge-delayed { background: var(--warning-bg); color: var(--warning-text); }
   .badge-info { background: var(--info-bg); color: var(--info-text); }
+
+  .airline-name {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
 
   .time-row {
     display: flex;
@@ -196,52 +205,24 @@
   .est-time { font-size: 13px; color: var(--warning-text); }
   .time-sep { font-size: 12px; color: var(--text-hint); }
 
-  .route { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+  .dest-name { font-size: 14px; color: var(--text); margin-bottom: 2px; }
+  .dest-code { color: var(--text-muted); font-size: 13px; }
+
+  .via-row { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .dom-row { font-size: 12px; color: var(--text-hint); }
 
   .meta-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 16px;
+    gap: 6px 14px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 0.5px solid var(--border);
   }
 
-  .meta {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
+  .meta { font-size: 12px; color: var(--text-muted); }
   .meta strong { color: var(--text); font-weight: 500; }
 
-  .section-label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-hint);
-    margin: 1rem 0 0.625rem;
-  }
-
-  .section-label:first-child { margin-top: 0; }
-
-  /* Info cards (airports / airlines) */
-  .info-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .info-name { font-size: 14px; color: var(--text); }
-  .info-code {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-family: 'SF Mono', 'Fira Mono', monospace;
-  }
-
-  /* States */
   .empty, .loading-msg {
     text-align: center;
     padding: 2.5rem 1rem;
@@ -252,15 +233,13 @@
   .error-msg {
     background: var(--danger-bg);
     color: var(--danger-text);
-    border: 0.5px solid;
-    border-color: var(--danger-text);
+    border: 0.5px solid var(--danger-text);
     border-radius: var(--radius);
     padding: 0.75rem 1rem;
     font-size: 13px;
     margin-bottom: 1rem;
   }
 
-  /* Attribution */
   .attribution {
     text-align: center;
     padding: 1.5rem 0 2rem;
@@ -269,15 +248,27 @@
   }
 
   .attribution a { color: var(--info-text); }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--info-text);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
-    <h1><span>✈</span> Avinor flydata</h1>
-
-    <div class="airport-row">
-      <select id="airportSel">
+    <h1>✈ Avinor flydata</h1>
+    <div class="controls">
+      <select id="airportSel" onchange="reload()">
         <option value="OSL">Oslo Lufthavn (OSL)</option>
         <option value="BGO">Bergen (BGO)</option>
         <option value="SVG">Stavanger (SVG)</option>
@@ -295,19 +286,15 @@
         <option value="EVE">Evenes / Harstad-Narvik (EVE)</option>
         <option value="ANX">Andøya (ANX)</option>
         <option value="BNN">Brønnøysund (BNN)</option>
-        <option value="BVG">Berlevåg (BVG)</option>
         <option value="FDE">Førde (FDE)</option>
-        <option value="GLL">Gol (GLL)</option>
         <option value="HFT">Hammerfest (HFT)</option>
         <option value="HOV">Ørsta-Volda (HOV)</option>
         <option value="HVG">Honningsvåg (HVG)</option>
-        <option value="JAN">Jan Mayen (JAN)</option>
         <option value="LYR">Longyearbyen (LYR)</option>
         <option value="MEH">Mehamn (MEH)</option>
         <option value="MJF">Mosjøen (MJF)</option>
         <option value="MQN">Mo i Rana (MQN)</option>
         <option value="NTB">Notodden (NTB)</option>
-        <option value="NVK">Narvik (NVK)</option>
         <option value="OSY">Namsos (OSY)</option>
         <option value="RRS">Røros (RRS)</option>
         <option value="SDN">Sandane (SDN)</option>
@@ -319,57 +306,24 @@
         <option value="SVJ">Svolvær (SVJ)</option>
         <option value="VAW">Vardø (VAW)</option>
         <option value="VDB">Fagernes (VDB)</option>
-        <option value="VDS">Vardø (VDS)</option>
         <option value="VRY">Værøy (VRY)</option>
       </select>
-    </div>
-
-    <div class="tab-row">
-      <button class="tab active" onclick="setTab('flights')">Flighter</button>
-      <button class="tab" onclick="setTab('airports')">Flyplasser</button>
-      <button class="tab" onclick="setTab('airlines')">Selskaper</button>
+      <div class="dir-toggle">
+        <button class="dir-btn active" id="btn-D" onclick="setDir('D')">Avg</button>
+        <button class="dir-btn" id="btn-A" onclick="setDir('A')">Ank</button>
+      </div>
     </div>
   </div>
 
   <div class="content">
-
-    <!-- Flights tab -->
-    <div id="flightsTab">
-<div class="filter-row">
-        <select id="dirSel">
-          <option value="">Begge retninger</option>
-          <option value="D">Avganger</option>
-          <option value="A">Ankomster</option>
-        </select>
-        <select id="timeTo">
-          <option value="3">Neste 3t</option>
-          <option value="7" selected>Neste 7t</option>
-          <option value="12">Neste 12t</option>
-          <option value="24">Neste 24t</option>
-        </select>
-      </div>
-      <button class="fetch-btn" id="fetchBtn" onclick="fetchFlights()">Hent flydata</button>
-      <div id="flightResults">
-        <div class="empty">Velg flyplass og trykk «Hent flydata»</div>
-      </div>
+    <div id="historyToggle" class="history-toggle" style="display:none">
+      <button class="history-btn" onclick="toggleHistory()">
+        <span id="historyBtnTxt">Vis tidligere avganger</span>
+      </button>
     </div>
-
-    <!-- Airports tab -->
-    <div id="airportsTab" style="display:none">
-      <button class="fetch-btn" onclick="fetchAirports()">Hent alle flyplasser</button>
-      <div id="airportResults">
-        <div class="empty">Trykk for å laste flyplassliste</div>
-      </div>
+    <div id="flightResults">
+      <div class="loading-msg"><span class="spinner"></span>Henter flydata…</div>
     </div>
-
-    <!-- Airlines tab -->
-    <div id="airlinesTab" style="display:none">
-      <button class="fetch-btn" onclick="fetchAirlines()">Hent alle flyselskaper</button>
-      <div id="airlineResults">
-        <div class="empty">Trykk for å laste flyselskapsliste</div>
-      </div>
-    </div>
-
     <div class="attribution">
       <a href="https://www.avinor.no" target="_blank">Flydata fra Avinor</a>
     </div>
@@ -377,22 +331,188 @@
 </div>
 
 <script>
-// ── Config ────────────────────────────────────────────────────────────────
-const PROXY_BASE = 'https://avino-proxy.batil-kjekken.workers.dev';
+const PROXY = 'https://avino-proxy.batil-kjekken.workers.dev';
 
-function getProxy() {
-  return PROXY_BASE;
+let currentDir = 'D';
+let showHistory = false;
+let airportNames = {};
+let airlineNames = {};
+let allFlights = [];
+let nowMarkerIndex = -1;
+
+async function boot() {
+  await Promise.all([loadAirportNames(), loadAirlineNames()]);
+  await fetchFlights();
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────────────
-function setTab(t) {
-  ['flights', 'airports', 'airlines'].forEach((x, i) => {
-    document.getElementById(x + 'Tab').style.display = x === t ? '' : 'none';
-    document.querySelectorAll('.tab')[i].classList.toggle('active', x === t);
+async function loadAirportNames() {
+  try {
+    const xml = await fetchXML('/airportNames/v1.0?shortname=Y');
+    xml.querySelectorAll('airportName').forEach(a => {
+      const code = a.getAttribute('code') || '';
+      const name = a.getAttribute('name') || '';
+      if (code && name) airportNames[code] = name;
+    });
+  } catch(e) {}
+}
+
+async function loadAirlineNames() {
+  try {
+    const xml = await fetchXML('/airlineNames/v1.0');
+    xml.querySelectorAll('airlineName').forEach(a => {
+      const code = a.getAttribute('code') || '';
+      const name = a.getAttribute('name') || '';
+      if (code && name) airlineNames[code] = name;
+    });
+  } catch(e) {}
+}
+
+function setDir(dir) {
+  currentDir = dir;
+  document.getElementById('btn-D').classList.toggle('active', dir === 'D');
+  document.getElementById('btn-A').classList.toggle('active', dir === 'A');
+  document.getElementById('historyBtnTxt').textContent =
+    dir === 'D' ? 'Vis tidligere avganger' : 'Vis tidligere ankomster';
+  showHistory = false;
+  fetchFlights();
+}
+
+function reload() {
+  showHistory = false;
+  fetchFlights();
+}
+
+function toggleHistory() {
+  showHistory = !showHistory;
+  document.getElementById('historyBtnTxt').textContent = showHistory
+    ? (currentDir === 'D' ? 'Skjul tidligere avganger' : 'Skjul tidligere ankomster')
+    : (currentDir === 'D' ? 'Vis tidligere avganger' : 'Vis tidligere ankomster');
+  renderFlights();
+  if (!showHistory) scrollToNow();
+}
+
+async function fetchXML(path) {
+  const res = await fetch(PROXY + path);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const txt = await res.text();
+  return new DOMParser().parseFromString(txt, 'text/xml');
+}
+
+async function fetchFlights() {
+  const airport = document.getElementById('airportSel').value;
+  const el = document.getElementById('flightResults');
+  el.innerHTML = '<div class="loading-msg"><span class="spinner"></span>Henter flydata…</div>';
+  document.getElementById('historyToggle').style.display = 'none';
+
+  try {
+    const qs = `/XmlFeed/v1.0?airport=${airport}&TimeFrom=3&TimeTo=24&direction=${currentDir}`;
+    const xml = await fetchXML(qs);
+
+    allFlights = [...xml.querySelectorAll('flight')].sort((a, b) => {
+      const ta = new Date(a.querySelector('schedule_time')?.textContent || 0).getTime();
+      const tb = new Date(b.querySelector('schedule_time')?.textContent || 0).getTime();
+      return ta - tb;
+    });
+
+    if (!allFlights.length) {
+      el.innerHTML = '<div class="empty">Ingen fly funnet</div>';
+      return;
+    }
+
+    const now = Date.now();
+    nowMarkerIndex = allFlights.findIndex(f => {
+      const t = new Date(f.querySelector('schedule_time')?.textContent || 0).getTime();
+      return t >= now;
+    });
+    if (nowMarkerIndex === -1) nowMarkerIndex = allFlights.length;
+
+    document.getElementById('historyToggle').style.display =
+      nowMarkerIndex > 0 ? 'block' : 'none';
+
+    renderFlights();
+    setTimeout(scrollToNow, 80);
+
+  } catch(e) {
+    el.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+function renderFlights() {
+  const el = document.getElementById('flightResults');
+  const now = Date.now();
+  let html = '';
+
+  allFlights.forEach((f, i) => {
+    const schedRaw = f.querySelector('schedule_time')?.textContent || '';
+    const schedMs  = new Date(schedRaw).getTime();
+    const isPast   = schedMs < now;
+
+    if (isPast && !showHistory) return;
+
+    if (i === nowMarkerIndex) {
+      html += `<div class="now-marker" id="now-marker">
+        <div class="now-marker-line"></div>
+        <div class="now-marker-label">Nå — ${new Date().toLocaleTimeString('nb-NO',{hour:'2-digit',minute:'2-digit'})}</div>
+        <div class="now-marker-line"></div>
+      </div>`;
+    }
+
+    const id       = f.querySelector('flight_id')?.textContent || '';
+    const sched    = utcToLocal(schedRaw);
+    const destCode = f.querySelector('airport')?.textContent || '';
+    const destName = airportNames[destCode] || destCode;
+    const airCode  = f.querySelector('airline')?.textContent || '';
+    const airName  = airlineNames[airCode] || airCode;
+    const statusEl = f.querySelector('status');
+    const scode    = statusEl?.getAttribute('code') || '';
+    const stime    = statusEl?.getAttribute('time') ? utcToLocal(statusEl.getAttribute('time')) : '';
+    const gate     = f.querySelector('gate')?.textContent || '';
+    const belt     = f.querySelector('belt_number')?.textContent || '';
+    const checkin  = f.querySelector('check_in')?.textContent || '';
+    const viaRaw   = f.querySelector('via_airport')?.textContent || '';
+    const domInt   = f.querySelector('dom_int')?.textContent || '';
+    const si       = scode ? statusInfo(scode) : null;
+
+    const viaNames = viaRaw
+      ? viaRaw.split(',').map(c => airportNames[c.trim()] || c.trim()).join(' → ')
+      : '';
+
+    const hasMeta = gate || checkin || belt;
+
+    html += `<div class="flight-card${isPast ? ' past' : ''}">
+      <div class="flight-top">
+        <div class="flight-id">${id}</div>
+        ${si ? `<span class="badge ${si.cls}">${si.label}</span>` : ''}
+      </div>
+      <div class="airline-name">${airName}</div>
+      <div class="time-row">
+        <span class="sched-time">${sched}</span>
+        ${stime && stime !== sched ? `<span class="time-sep">→</span><span class="est-time">${stime}</span>` : ''}
+      </div>
+      <div class="dest-name">${destName} <span class="dest-code">(${destCode})</span></div>
+      ${viaNames ? `<div class="via-row">via ${viaNames}</div>` : ''}
+      <div class="dom-row">${domLabel(domInt)}</div>
+      ${hasMeta ? `<div class="meta-row">
+        ${gate    ? `<span class="meta">Gate <strong>${gate}</strong></span>` : ''}
+        ${checkin ? `<span class="meta">Innsjekk <strong>${checkin}</strong></span>` : ''}
+        ${belt    ? `<span class="meta">Bagasjebånd <strong>${belt}</strong></span>` : ''}
+      </div>` : ''}
+    </div>`;
   });
+
+  if (!html) {
+    el.innerHTML = '<div class="empty">Ingen fly i valgt tidsrom</div>';
+    return;
+  }
+
+  el.innerHTML = html;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+function scrollToNow() {
+  const marker = document.getElementById('now-marker');
+  if (marker) marker.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function utcToLocal(utc) {
   if (!utc) return '—';
   return new Date(utc).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
@@ -412,148 +532,7 @@ function domLabel(v) {
   return { D: 'Innenriks', I: 'Internasjonal', S: 'Schengen' }[v] || v || '';
 }
 
-async function fetchXML(path) {
-  const proxy = getProxy();
-  if (!proxy) throw new Error('Ingen proxy-URL konfigurert. Lim inn Worker-URL-en øverst og trykk Lagre.');
-  const res = await fetch(proxy + path);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const txt = await res.text();
-  return new DOMParser().parseFromString(txt, 'text/xml');
-}
-
-// ── Flights ───────────────────────────────────────────────────────────────
-async function fetchFlights() {
-  const airport = document.getElementById('airportSel').value;
-  const dir     = document.getElementById('dirSel').value;
-  const timeTo  = document.getElementById('timeTo').value;
-  const el      = document.getElementById('flightResults');
-  const btn     = document.getElementById('fetchBtn');
-
-  btn.disabled = true;
-  btn.textContent = 'Henter…';
-  el.innerHTML = '<div class="loading-msg">Henter flydata…</div>';
-
-  try {
-    let qs = `/XmlFeed/v1.0?airport=${airport}&TimeFrom=1&TimeTo=${timeTo}`;
-    if (dir) qs += `&direction=${dir}`;
-
-    const xml   = await fetchXML(qs);
-    const nodes = [...xml.querySelectorAll('flight')];
-
-    if (!nodes.length) {
-      el.innerHTML = '<div class="empty">Ingen fly i valgt tidsrom</div>';
-      return;
-    }
-
-    const dep = nodes.filter(f => f.querySelector('arr_dep')?.textContent === 'D');
-    const arr = nodes.filter(f => f.querySelector('arr_dep')?.textContent === 'A');
-
-    let html = '';
-
-    const renderGroup = (list, label) => {
-      if (!list.length) return;
-      html += `<div class="section-label">${label} (${list.length})</div>`;
-      list.forEach(f => {
-        const id        = f.querySelector('flight_id')?.textContent || '';
-        const sched     = utcToLocal(f.querySelector('schedule_time')?.textContent);
-        const dest      = f.querySelector('airport')?.textContent || '';
-        const airline   = f.querySelector('airline')?.textContent || '';
-        const statusEl  = f.querySelector('status');
-        const scode     = statusEl?.getAttribute('code') || '';
-        const stime     = statusEl?.getAttribute('time') ? utcToLocal(statusEl.getAttribute('time')) : '';
-        const gate      = f.querySelector('gate')?.textContent || '';
-        const belt      = f.querySelector('belt_number')?.textContent || '';
-        const checkin   = f.querySelector('check_in')?.textContent || '';
-        const via       = f.querySelector('via_airport')?.textContent || '';
-        const domInt    = f.querySelector('dom_int')?.textContent || '';
-        const si        = scode ? statusInfo(scode) : null;
-
-        html += `<div class="flight-card">
-          <div class="flight-top">
-            <div class="flight-id">${id}</div>
-            ${si ? `<span class="badge ${si.cls}">${si.label}</span>` : ''}
-          </div>
-          <div class="time-row">
-            <span class="sched-time">${sched}</span>
-            ${stime && stime !== sched ? `<span class="time-sep">→</span><span class="est-time">${stime}</span>` : ''}
-          </div>
-          <div class="route">${dest}${via ? ' via ' + via : ''} · ${domLabel(domInt)}</div>
-          <div class="meta-row">
-            ${gate    ? `<span class="meta">Gate <strong>${gate}</strong></span>` : ''}
-            ${checkin ? `<span class="meta">Innsjekk <strong>${checkin}</strong></span>` : ''}
-            ${belt    ? `<span class="meta">Bånd <strong>${belt}</strong></span>` : ''}
-            <span class="meta">Selskap <strong>${airline}</strong></span>
-          </div>
-        </div>`;
-      });
-    };
-
-    if (!dir || dir === 'D') renderGroup(dep, 'Avganger');
-    if (!dir || dir === 'A') renderGroup(arr, 'Ankomster');
-
-    el.innerHTML = html;
-
-  } catch (e) {
-    el.innerHTML = `<div class="error-msg">${e.message}</div>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Hent flydata';
-  }
-}
-
-// ── Airports ──────────────────────────────────────────────────────────────
-async function fetchAirports() {
-  const el = document.getElementById('airportResults');
-  el.innerHTML = '<div class="loading-msg">Henter flyplasser…</div>';
-  try {
-    const xml   = await fetchXML('/airportNames/v1.0?shortname=Y');
-    const items = [...xml.querySelectorAll('airportName')];
-    if (!items.length) { el.innerHTML = '<div class="empty">Ingen data</div>'; return; }
-
-    const sorted = items
-      .map(a => ({ code: a.getAttribute('code') || '', name: a.getAttribute('name') || '' }))
-      .filter(a => a.name)
-      .sort((a, b) => a.name.localeCompare(b.name, 'nb'));
-
-    let html = `<div class="section-label">Alle flyplasser (${sorted.length})</div>`;
-    sorted.forEach(a => {
-      html += `<div class="info-card">
-        <span class="info-name">${a.name}</span>
-        <span class="info-code">${a.code}</span>
-      </div>`;
-    });
-    el.innerHTML = html;
-  } catch (e) {
-    el.innerHTML = `<div class="error-msg">${e.message}</div>`;
-  }
-}
-
-// ── Airlines ──────────────────────────────────────────────────────────────
-async function fetchAirlines() {
-  const el = document.getElementById('airlineResults');
-  el.innerHTML = '<div class="loading-msg">Henter flyselskaper…</div>';
-  try {
-    const xml   = await fetchXML('/airlineNames/v1.0');
-    const items = [...xml.querySelectorAll('airlineName')];
-    if (!items.length) { el.innerHTML = '<div class="empty">Ingen data</div>'; return; }
-
-    const sorted = items
-      .map(a => ({ code: a.getAttribute('code') || '', name: a.getAttribute('name') || '' }))
-      .filter(a => a.name)
-      .sort((a, b) => a.name.localeCompare(b.name, 'nb'));
-
-    let html = `<div class="section-label">Alle flyselskaper (${sorted.length})</div>`;
-    sorted.forEach(a => {
-      html += `<div class="info-card">
-        <span class="info-name">${a.name}</span>
-        <span class="info-code">${a.code}</span>
-      </div>`;
-    });
-    el.innerHTML = html;
-  } catch (e) {
-    el.innerHTML = `<div class="error-msg">${e.message}</div>`;
-  }
-}
+boot();
 </script>
 </body>
 </html>
