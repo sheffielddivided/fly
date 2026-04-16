@@ -773,6 +773,9 @@ function renderFlights() {
     const uid = f.getAttribute('uniqueID') || id;
     const actualDepRaw = (scode === 'D' && statusEl?.getAttribute('time'))
       ? statusEl.getAttribute('time') : schedRaw;
+    // Oppdatert ankomsttid (status E = ny tid, eller status A = faktisk landingstid)
+    const actualArrRaw = (scode === 'E' || scode === 'A') && statusEl?.getAttribute('time')
+      ? statusEl.getAttribute('time') : schedRaw;
 
     const homeCode = document.getElementById('airportSel').value;
     const homeName = airportNames[homeCode] || homeCode;
@@ -788,7 +791,7 @@ function renderFlights() {
 
     html += `<div class="flight-card${isPast ? ' past' : ''}" id="card-${uid}"
         data-uid="${uid}" data-flight="${id}" data-from="${fromCode}" data-to="${toCode}"
-        data-sched="${schedRaw}" data-dep="${actualDepRaw}" data-dom="${domInt}">
+        data-sched="${schedRaw}" data-dep="${actualDepRaw}" data-arr="${actualArrRaw}" data-dom="${domInt}">
       <div class="flight-top">
         <div class="flight-top-left">
           <span class="flight-id">${id}</span>
@@ -852,7 +855,6 @@ function statusInfo(code) {
 
 // ── Auto-load card data via IntersectionObserver ──────────────────────────
 const loadedCards = new Set();
-let adsbQueue = Promise.resolve();
 let observer;
 
 function setupObserver() {
@@ -881,6 +883,7 @@ async function loadCardData(card) {
   const toCode   = card.dataset.to;
   const schedRaw = card.dataset.sched;
   const depRaw   = card.dataset.dep;
+  const arrRaw   = card.dataset.arr;
   const domInt   = card.dataset.dom;
   const panel    = document.getElementById(`auto-${uid}`);
   const arrTimeEl = document.getElementById(`arr-time-${uid}`);
@@ -900,17 +903,7 @@ async function loadCardData(card) {
     }
   };
 
-  const [extraResult, skyHtml] = await Promise.all([
-    fetchExtra(),
-    new Promise(resolve => {
-      adsbQueue = adsbQueue.then(() =>
-        new Promise(r => setTimeout(r, 300))
-      ).then(() =>
-        fetchOpenSkyHtml(uid, flightId, fromCode, toCode, depRaw || schedRaw, null)
-        .then(resolve)
-      );
-    }),
-  ]);
+  const extraResult = await fetchExtra();
 
   if (currentDir === 'D') {
     if (extraResult?.schedRaw) {
@@ -919,7 +912,7 @@ async function loadCardData(card) {
     }
     const arrivalRaw = extraResult?.schedRaw || null;
     const progressHtml = buildProgressHtml(fromCode, toCode, depRaw || schedRaw, arrivalRaw);
-    const parts = [extraResult?.html || '', skyHtml, progressHtml].filter(Boolean);
+    const parts = [extraResult?.html || '', progressHtml].filter(Boolean);
     panel.innerHTML = parts.join('') || '';
   } else {
     if (extraResult?.schedRaw) {
@@ -927,8 +920,9 @@ async function loadCardData(card) {
       if (el) el.innerHTML = `<span class="route-time">${utcToLocal(extraResult.schedRaw)}</span>`;
     }
     const progressHtml = buildProgressHtml(fromCode, toCode,
-      extraResult?.schedRaw || depRaw, schedRaw);
-    const parts = [skyHtml, progressHtml].filter(Boolean);
+      extraResult?.schedRaw || depRaw, arrRaw || schedRaw);
+    panel.innerHTML = progressHtml || '';
+  }
     panel.innerHTML = parts.join('') || '';
   }
 }
@@ -1028,73 +1022,6 @@ async function fetchDestData(flightId, destCode) {
   } catch(e) { return null; }
 }
 
-async function fetchOpenSkyHtml(uid, flightId, fromCode, toCode, depRaw, arrivalRaw) {
-  try {
-    const callsign = flightId.replace(/\s+/g, '').toUpperCase();
-    const res = await fetch(`${PROXY}/adsb/v2/callsign/${encodeURIComponent(callsign)}`);
-
-    if (res.status === 429) {
-      setTimeout(() => loadedCards.delete(uid), 5000); // retry after 5s
-      return '';
-    }
-    if (!res.ok) return '';
-
-    const data = await res.json();
-    const ac = data.ac;
-    if (!ac || !ac.length) return '';
-
-    const s = ac[0];
-    const onGround = s.alt_baro === 'ground' || s.gs < 50;
-    const lat      = s.lat;
-    const lon      = s.lon;
-    const altFt    = typeof s.alt_geom === 'number' ? Math.round(s.alt_geom)
-                   : typeof s.alt_baro === 'number' ? Math.round(s.alt_baro) : null;
-    const velocity = s.gs != null ? Math.round(s.gs * 1.852) : null;
-    const track    = s.track != null ? Math.round(s.track) : null;
-    const baroRate = s.baro_rate;
-    const acType   = s.t || '';
-    const reg      = s.r || '';
-    const compassDir = track != null ? trackToCompass(track) : null;
-    const vertLabel  = baroRate != null
-      ? (baroRate > 64 ? '↑ stiger' : baroRate < -64 ? '↓ synker' : '→ cruiser')
-      : null;
-
-    if (onGround) return '';
-
-    // Oppdater framdrift med live-posisjon
-    if (lat != null && lon != null) {
-      const fc = AIRPORT_COORDS[fromCode], tc = AIRPORT_COORDS[toCode];
-      if (fc && tc) {
-        const totalKm = haversineKm(...fc, ...tc);
-        const doneKm  = haversineKm(fc[0], fc[1], lat, lon);
-        const pct     = Math.min(100, (doneKm / totalKm) * 100);
-        const remKm   = Math.max(0, totalKm - doneKm);
-        const etaStr  = arrivalRaw
-          ? new Date(arrivalRaw).toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
-          : velocity && velocity > 100
-            ? new Date(Date.now() + (remKm / velocity) * 3600000)
-                .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
-            : null;
-        // Oppdater framdriftslinjen i panelet direkte
-        const panel = document.getElementById(`auto-${uid}`);
-        if (panel) {
-          const prog = panel.querySelector('.progress-wrap');
-          if (prog) prog.outerHTML = progressBarHtml(pct, fromCode, toCode, etaStr);
-        }
-      }
-    }
-
-    let html = `<div class="expand-section-title">Live <span style="font-weight:400;text-transform:none;letter-spacing:0">${reg ? reg : ''}${acType ? ' · ' + acType : ''}</span></div>`;
-    html += `<div class="onground-badge" style="margin-bottom:6px"><span class="dot dot-green"></span>I lufta</div>`;
-    html += `<div class="live-grid">`;
-    if (altFt != null)   html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt.toLocaleString('nb-NO')}<span class="live-cell-unit">fot</span></div></div>`;
-    if (velocity != null) html += `<div class="live-cell"><div class="live-cell-label">Hastighet</div><div class="live-cell-value">${velocity}<span class="live-cell-unit">km/t</span></div></div>`;
-    if (compassDir)       html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
-    if (vertLabel)        html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:12px">${vertLabel}</div></div>`;
-    html += `</div>`;
-    return html;
-  } catch(e) { return ''; }
-}
 
 function trackToCompass(deg) {
   const dirs = ['N','NØ','Ø','SØ','S','SV','V','NV'];
