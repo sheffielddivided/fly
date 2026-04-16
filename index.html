@@ -3,56 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Flydata</title>
-<meta name="apple-mobile-web-app-title" content="Flydata">
+<title>Flytider</title>
+<meta name="apple-mobile-web-app-title" content="Flytider">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#185fa5">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23185fa5'/%3E%3Ctext y='75' x='50' text-anchor='middle' font-size='65' fill='white'%3E%E2%9C%88%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" id="apple-touch-icon">
-<rect width='100' height='100' rx='22' fill='%23185fa5'/><text y='72' x='50' text-anchor='middle' font-size='62'>✈</text></svg>">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f5f5f3;
+    --bg: #f0f4f8;
     --surface: #ffffff;
-    --border: rgba(0,0,0,0.12);
-    --border-strong: rgba(0,0,0,0.25);
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.22);
     --text: #1a1a18;
     --text-muted: #6b6b67;
     --text-hint: #9c9a94;
-    --info-bg: #e6f1fb;
+    --info-bg: #deeefb;
     --info-text: #0c447c;
-    --info-border: #b5d4f4;
-    --success-bg: #eaf3de;
-    --success-text: #27500a;
-    --warning-bg: #faeeda;
-    --warning-text: #633806;
-    --danger-bg: #fcebeb;
-    --danger-text: #791f1f;
+    --info-border: #9dc8f0;
+    --success-bg: #e0f2d4;
+    --success-text: #1e4a08;
+    --warning-bg: #fef0d0;
+    --warning-text: #5a3200;
+    --danger-bg: #fde8e8;
+    --danger-text: #6e1a1a;
+    --accent: #185fa5;
+    --accent-light: #deeefb;
     --radius: 8px;
-    --radius-lg: 12px;
+    --radius-lg: 14px;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1a1a18;
-      --surface: #252522;
-      --border: rgba(255,255,255,0.1);
-      --border-strong: rgba(255,255,255,0.2);
+      --bg: #13151a;
+      --surface: #1e2128;
+      --border: rgba(255,255,255,0.09);
+      --border-strong: rgba(255,255,255,0.18);
       --text: #e8e6df;
       --text-muted: #9c9a92;
       --text-hint: #6b6b67;
-      --info-bg: #0c447c;
-      --info-text: #b5d4f4;
+      --info-bg: #0d3560;
+      --info-text: #8ec8f8;
       --info-border: #185fa5;
-      --success-bg: #27500a;
-      --success-text: #c0dd97;
-      --warning-bg: #633806;
-      --warning-text: #fac775;
-      --danger-bg: #791f1f;
-      --danger-text: #f7c1c1;
+      --success-bg: #1a3d08;
+      --success-text: #a8d878;
+      --warning-bg: #4a2800;
+      --warning-text: #f8c060;
+      --danger-bg: #4a0f0f;
+      --danger-text: #f89090;
+      --accent: #2878c8;
+      --accent-light: #0d3560;
     }
   }
 
@@ -68,8 +71,8 @@
   .app { max-width: 480px; margin: 0 auto; }
 
   .header {
-    background: var(--surface);
-    border-bottom: 0.5px solid var(--border);
+    background: var(--accent);
+    border-bottom: none;
     padding: 1rem 1.25rem 0.75rem;
     position: sticky;
     top: 0;
@@ -77,9 +80,26 @@
   }
 
   .header h1 {
-    font-size: 18px;
-    font-weight: 500;
+    font-size: 20px;
+    font-weight: 600;
     margin-bottom: 0.75rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.3px;
+  }
+
+  .header h1 .logo-icon {
+    width: 30px;
+    height: 30px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
   }
 
   .controls {
@@ -92,11 +112,16 @@
     flex: 1;
     min-width: 0;
     padding: 8px 10px;
-    border: 0.5px solid var(--border-strong);
+    border: 0.5px solid rgba(255,255,255,0.3);
     border-radius: var(--radius);
-    background: var(--bg);
-    color: var(--text);
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
     font-size: 14px;
+  }
+
+  .controls select option {
+    background: var(--surface);
+    color: var(--text);
   }
 
   .search-row {
@@ -108,21 +133,21 @@
   .search-input {
     flex: 1;
     padding: 8px 10px;
-    border: 0.5px solid var(--border);
+    border: 0.5px solid rgba(255,255,255,0.3);
     border-radius: var(--radius);
-    background: var(--bg);
-    color: var(--text);
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
     font-size: 14px;
   }
 
-  .search-input::placeholder { color: var(--text-hint); }
+  .search-input::placeholder { color: rgba(255,255,255,0.55); }
 
   .search-clear {
     padding: 8px 12px;
-    border: 0.5px solid var(--border);
+    border: 0.5px solid rgba(255,255,255,0.3);
     border-radius: var(--radius);
-    background: transparent;
-    color: var(--text-muted);
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
     font-size: 13px;
     cursor: pointer;
     display: none;
@@ -135,10 +160,10 @@
 
   .dir-btn {
     padding: 8px 14px;
-    border: 0.5px solid var(--border);
+    border: 0.5px solid rgba(255,255,255,0.3);
     border-radius: var(--radius);
-    background: transparent;
-    color: var(--text-muted);
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -147,9 +172,9 @@
   }
 
   .dir-btn.active {
-    background: var(--info-bg);
-    color: var(--info-text);
-    border-color: var(--info-border);
+    background: #ffffff;
+    color: var(--accent);
+    border-color: #ffffff;
   }
 
   .content { padding: 1rem 1.25rem; }
@@ -164,16 +189,17 @@
 
   .now-marker-line {
     flex: 1;
-    height: 1px;
-    background: var(--info-border);
+    height: 1.5px;
+    background: var(--accent);
+    opacity: 0.4;
   }
 
   .now-marker-label {
     font-size: 11px;
-    font-weight: 500;
-    color: var(--info-text);
-    background: var(--info-bg);
-    padding: 2px 8px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    padding: 3px 10px;
     border-radius: 99px;
     white-space: nowrap;
   }
@@ -185,7 +211,7 @@
 
   .history-btn {
     font-size: 13px;
-    color: var(--info-text);
+    color: var(--accent);
     background: none;
     border: none;
     cursor: pointer;
@@ -202,7 +228,9 @@
     margin-bottom: 0.625rem;
   }
 
-  .flight-card.past { opacity: 0.5; }
+  .flight-card.past {
+    border-left: 3px solid var(--border-strong);
+  }
 
   .flight-top {
     display: flex;
@@ -441,7 +469,7 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>✈ Avinor flydata</h1>
+    <h1><span class="logo-icon">✈</span> Flytider</h1>
     <div class="controls">
       <select id="airportSel" onchange="reload()">
         <option value="OSL">Oslo Lufthavn (OSL)</option>
