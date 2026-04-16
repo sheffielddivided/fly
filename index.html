@@ -339,6 +339,48 @@
   .dot-green { background: #4caf50; }
   .dot-gray  { background: var(--text-hint); }
 
+  .progress-wrap { margin-top: 4px; }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .progress-airport { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .progress-track {
+    position: relative;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin-bottom: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--info-border);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-plane {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    line-height: 1;
+    filter: drop-shadow(0 0 2px var(--color-background-primary));
+  }
+
+  .progress-pct {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
   .empty, .loading-msg {
     text-align: center;
     padding: 2.5rem 1rem;
@@ -736,7 +778,9 @@ async function toggleExpand(uid, flightId, destCode, schedRaw, domInt) {
 
   const [destHtml, skyHtml] = await Promise.all([
     domInt === 'D' ? fetchDestHtml(flightId, destCode) : Promise.resolve(''),
-    fetchOpenSkyHtml(flightId),
+    fetchOpenSkyHtml(flightId, currentDir === 'D' ? document.getElementById('airportSel').value : destCode,
+                               currentDir === 'D' ? destCode : document.getElementById('airportSel').value,
+                               schedRaw),
   ]);
 
   const html = [destHtml, skyHtml].filter(Boolean).join('') ||
@@ -841,6 +885,155 @@ async function fetchOpenSkyHtml(flightId) {
 function trackToCompass(deg) {
   const dirs = ['N','NØ','Ø','SØ','S','SV','V','NV'];
   return dirs[Math.round(deg / 45) % 8];
+}
+
+// ── Flyplasskoordinater ───────────────────────────────────────────────────
+const AIRPORT_COORDS = {
+  OSL:[60.1939,11.1004], BGO:[60.2934,5.2181], SVG:[58.8768,5.6378],
+  TRD:[63.4578,10.9239], TOS:[69.6833,18.9189], BOO:[67.2692,14.3653],
+  AES:[62.5625,6.1197],  KRS:[58.2042,8.0853],  TRF:[59.1867,10.2586],
+  HAU:[59.3453,5.2086],  MOL:[62.7447,7.2625],  EVE:[68.4913,16.6781],
+  ALF:[69.9761,23.3617], KKN:[69.7258,29.8913], LKL:[70.0688,24.9736],
+  ANX:[69.2926,16.1442], BNN:[65.4611,12.2175], FDE:[61.3911,5.7564],
+  HFT:[70.6797,23.6686], HOV:[62.1800,6.0997],  HVG:[71.0097,25.9836],
+  LYR:[78.2461,15.4656], MEH:[71.0297,27.8267], MJF:[65.7840,13.2149],
+  MQN:[66.3637,14.3015], NTB:[59.5664,9.2122],  OSY:[64.4728,11.5786],
+  RRS:[62.5780,11.3464], SDN:[61.8300,6.1058],  SKE:[59.1850,9.5669],
+  SKN:[68.5788,15.0331], SOG:[61.1561,7.1378],  SOJ:[69.7868,20.9594],
+  SSJ:[65.9568,12.4693], SVJ:[68.2433,14.6692], VAW:[70.3541,31.0449],
+  VDB:[61.0156,9.2881],  VRY:[67.6617,12.6867],
+  // Internasjonale vanligste
+  CPH:[55.6180,12.6560], ARN:[59.6519,17.9186], HEL:[60.3172,24.9633],
+  AMS:[52.3086,4.7639],  LHR:[51.4775,-0.4614], LGW:[51.1537,-0.1821],
+  CDG:[49.0097,2.5478],  FRA:[50.0379,8.5622],  MUC:[48.3537,11.7750],
+  MAD:[40.4936,-3.5668], BCN:[41.2974,2.0833],  FCO:[41.7999,12.2462],
+  DUB:[53.4213,-6.2701], BRU:[50.9014,4.4844],  ZRH:[47.4647,8.5492],
+  VIE:[48.1103,16.5697], WAW:[52.1657,20.9671], PRG:[50.1008,14.2600],
+  BLL:[55.7403,9.1519],  AAL:[57.0927,9.8492],  GOT:[57.6628,12.2798],
+  DXB:[25.2532,55.3657], DOH:[25.2609,51.6138], IST:[40.9769,28.8146],
+  SAW:[40.8985,29.3092], JFK:[40.6413,-73.7781], EWR:[40.6895,-74.1745],
+  ORD:[41.9742,-87.9073], LAX:[33.9425,-118.408],
+};
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function progressBarHtml(pct, fromCode, toCode, etaStr) {
+  const fromName = airportNames[fromCode] || fromCode;
+  const toName   = airportNames[toCode]   || toCode;
+  const clampedPct = Math.max(2, Math.min(98, pct));
+
+  return `
+  <div class="expand-section-title" style="margin-top:10px">Framdrift</div>
+  <div class="progress-wrap">
+    <div class="progress-labels">
+      <span class="progress-airport">${fromName}</span>
+      <span class="progress-airport">${toName}</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width:${clampedPct}%"></div>
+      <div class="progress-plane" style="left:calc(${clampedPct}% - 10px)">✈</div>
+    </div>
+    <div class="progress-pct">${Math.round(pct)}% fullført${etaStr ? ` · Est. ankomst <strong>${etaStr}</strong>` : ''}</div>
+  </div>`;
+}
+
+async function fetchOpenSkyHtml(flightId, fromCode, toCode, schedRaw) {
+  // Fallback: tidsbasert framdrift fra rutedata alene
+  function timeBasedProgress() {
+    const fromCoords = AIRPORT_COORDS[fromCode];
+    const toCoords   = AIRPORT_COORDS[toCode];
+    if (!fromCoords || !toCoords || !schedRaw) return '';
+    // Typisk cruisehastighet ~850 km/t
+    const totalKm  = haversineKm(...fromCoords, ...toCoords);
+    const depMs    = new Date(schedRaw).getTime();
+    const elapsedH = (Date.now() - depMs) / 3600000;
+    if (elapsedH < 0 || elapsedH > 24) return '';
+    const totalH   = totalKm / 850;
+    const pct      = Math.min(100, (elapsedH / totalH) * 100);
+    const remH     = Math.max(0, totalH - elapsedH);
+    const eta      = new Date(Date.now() + remH * 3600000)
+      .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'});
+    return progressBarHtml(pct, fromCode, toCode, pct < 100 ? eta : null);
+  }
+
+  try {
+    const callsign = flightId.replace(/\s+/g, '').toUpperCase().padEnd(8).substring(0, 8);
+    const url = `${PROXY}/opensky/states/all?callsign=${encodeURIComponent(callsign.trim())}`;
+    const res = await fetch(url);
+
+    // Hvis OpenSky er utilgjengelig, fall tilbake på tidsbasert
+    if (!res.ok) return timeBasedProgress();
+
+    const data = await res.json();
+    const states = data.states;
+
+    if (!states || !states.length) {
+      // Fly på bakken eller ikke funnet — vis tidsbasert hvis avgang er passert
+      const depMs = new Date(schedRaw).getTime();
+      if (Date.now() > depMs) return timeBasedProgress();
+      return `<div class="expand-section-title">Live posisjon</div>
+        <div class="onground-badge"><span class="dot dot-gray"></span>Ikke i lufta ennå</div>`;
+    }
+
+    const s          = states[0];
+    const onGround   = s[8];
+    const lat        = s[6];
+    const lon        = s[5];
+    const velocity   = s[9] != null ? Math.round(s[9] * 3.6) : null;
+    const baroAlt    = s[7] != null ? Math.round(s[7]) : null;
+    const geoAlt     = s[13] != null ? Math.round(s[13]) : null;
+    const altitude   = geoAlt ?? baroAlt;
+    const altFt      = altitude != null ? Math.round(altitude * 3.281) : null;
+    const track      = s[10] != null ? Math.round(s[10]) : null;
+    const vertRate   = s[11] != null ? Math.round(s[11]) : null;
+    const country    = s[2] || '';
+    const compassDir = track != null ? trackToCompass(track) : null;
+    const vertLabel  = vertRate != null
+      ? (vertRate > 1 ? '↑ stiger' : vertRate < -1 ? '↓ synker' : '→ cruiser')
+      : null;
+
+    if (onGround) {
+      return `<div class="expand-section-title">Live posisjon</div>
+        <div class="onground-badge"><span class="dot dot-gray"></span>På bakken (${country})</div>`;
+    }
+
+    // Beregn framdrift fra live-posisjon
+    let progressHtml = '';
+    const fromCoords = AIRPORT_COORDS[fromCode];
+    const toCoords   = AIRPORT_COORDS[toCode];
+    if (fromCoords && toCoords && lat != null && lon != null) {
+      const totalKm  = haversineKm(...fromCoords, ...toCoords);
+      const doneKm   = haversineKm(fromCoords[0], fromCoords[1], lat, lon);
+      const pct      = Math.min(100, (doneKm / totalKm) * 100);
+      const remKm    = Math.max(0, totalKm - doneKm);
+      const etaStr   = velocity && velocity > 100
+        ? new Date(Date.now() + (remKm / velocity) * 3600000)
+            .toLocaleTimeString('nb-NO', {hour:'2-digit', minute:'2-digit'})
+        : null;
+      progressHtml = progressBarHtml(pct, fromCode, toCode, etaStr);
+    }
+
+    let html = `<div class="expand-section-title">Live posisjon <span style="font-size:10px;color:var(--text-hint);font-weight:400;text-transform:none;letter-spacing:0">(OpenSky)</span></div>`;
+    html += `<div class="onground-badge" style="margin-bottom:8px"><span class="dot dot-green"></span>I lufta — ${country}</div>`;
+    html += `<div class="live-grid">`;
+    if (altitude != null) html += `<div class="live-cell"><div class="live-cell-label">Høyde</div><div class="live-cell-value">${altFt != null ? altFt.toLocaleString('nb-NO') : '—'}<span class="live-cell-unit">fot</span></div></div>`;
+    if (velocity != null) html += `<div class="live-cell"><div class="live-cell-label">Hastighet</div><div class="live-cell-value">${velocity}<span class="live-cell-unit">km/t</span></div></div>`;
+    if (compassDir)       html += `<div class="live-cell"><div class="live-cell-label">Kurs</div><div class="live-cell-value">${track}°<span class="live-cell-unit">${compassDir}</span></div></div>`;
+    if (vertLabel)        html += `<div class="live-cell"><div class="live-cell-label">Fase</div><div class="live-cell-value" style="font-size:13px">${vertLabel}</div></div>`;
+    html += `</div>`;
+    html += progressHtml;
+    return html;
+
+  } catch(e) {
+    return timeBasedProgress();
+  }
 }
 
 boot();
