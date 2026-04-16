@@ -790,7 +790,7 @@ async function fetchDestHtml(flightId, destCode) {
 async function fetchOpenSkyHtml(flightId) {
   try {
     const callsign = flightId.replace(/\s+/g, '').toUpperCase().padEnd(8).substring(0, 8);
-    const url = `https://opensky-network.org/api/states/all?callsign=${encodeURIComponent(callsign.trim())}`;
+    const url = `${PROXY}/opensky/states/all?callsign=${encodeURIComponent(callsign.trim())}`;
     const res = await fetch(url);
     if (!res.ok) return '';
     const data = await res.json();
