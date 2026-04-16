@@ -497,7 +497,10 @@ function toggleHistory() {
 async function fetchXML(path) {
   const res = await fetch(PROXY + path);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const txt = await res.text();
+  const buffer = await res.arrayBuffer();
+  // Decode as ISO-8859-1 (latin1) which is what Avinor uses
+  const txt = new TextDecoder('iso-8859-1').decode(buffer);
+  // Tell the XML parser it's now UTF-8 (since JS strings are unicode)
   const fixed = txt.replace(/encoding="[^"]+"/i, 'encoding="UTF-8"');
   return new DOMParser().parseFromString(fixed, 'text/xml');
 }
