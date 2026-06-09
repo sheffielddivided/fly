@@ -12,14 +12,12 @@
       color: #e2e8f0;
       font-family: system-ui, -apple-system, sans-serif;
     }
+    .driver-row {
+      transition: all 0.2s ease;
+    }
     .driver-row:hover {
       background-color: #334155;
       transform: scale(1.02);
-      transition: all 0.2s ease;
-    }
-    .position {
-      font-size: 1.25rem;
-      font-weight: 700;
     }
   </style>
 </head>
@@ -27,76 +25,83 @@
   <div class="max-w-4xl mx-auto py-12 px-4">
     <div class="flex items-center justify-between mb-10">
       <div>
-        <h1 class="text-5xl font-bold tracking-tight">F1 2026</h1>
+        <h1 class="text-5xl font-bold tracking-tight text-white">F1 2026</h1>
         <p class="text-xl text-slate-400">Sammenlagtstilling • Drivers' Championship</p>
       </div>
       <div id="last-updated" class="text-sm text-slate-400"></div>
     </div>
 
-    <div id="standings" class="bg-slate-900/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden">
-      <!-- Data fylles inn med JavaScript -->
+    <div id="standings" class="bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+      <!-- Fylles dynamisk -->
     </div>
 
     <div class="text-center mt-8 text-slate-500 text-sm">
-      Data hentet fra <a href="https://openf1.org" target="_blank" class="hover:text-white underline">OpenF1 API</a>
+      Data fra <a href="https://openf1.org" target="_blank" class="hover:text-white underline">OpenF1 API</a>
     </div>
   </div>
 
   <script>
     async function fetchStandings() {
       try {
-        // Henter siste tilgjengelige sammenlagtstilling
-        const res = await fetch('https://api.openf1.org/v1/championship_drivers?session_key=latest');
-        const data = await res.json();
+        // Hent championship data
+        const champRes = await fetch('https://api.openf1.org/v1/championship_drivers?session_key=latest');
+        const champData = await champRes.json();
 
-        if (!data || data.length === 0) {
-          document.getElementById('standings').innerHTML = `
-            <div class="p-12 text-center text-slate-400">
-              <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-              <p>Ingen data tilgjengelig akkurat nå.</p>
-            </div>`;
+        // Hent driver info (navn, team, farge)
+        const driversRes = await fetch('https://api.openf1.org/v1/drivers?session_key=latest');
+        const driversData = await driversRes.json();
+
+        // Lag en lookup-tabell for drivere
+        const driverMap = {};
+        driversData.forEach(d => {
+          driverMap[d.driver_number] = d;
+        });
+
+        if (!champData || champData.length === 0) {
+          document.getElementById('standings').innerHTML = `<div class="p-12 text-center">Ingen data tilgjengelig.</div>`;
           return;
         }
 
         // Sorter etter nåværende posisjon
-        data.sort((a, b) => a.position_current - b.position_current);
+        champData.sort((a, b) => a.position_current - b.position_current);
 
         let html = `
-          <div class="px-8 py-6 border-b border-slate-700 flex items-center gap-4">
-            <div class="flex-1 font-semibold text-slate-400">POS</div>
-            <div class="flex-[3] font-semibold text-slate-400">FØRER</div>
-            <div class="flex-1 text-right font-semibold text-slate-400">POENG</div>
+          <div class="px-8 py-6 border-b border-slate-700 flex items-center gap-6 text-slate-400 font-semibold">
+            <div class="w-12">POS</div>
+            <div class="flex-1">FØRER</div>
+            <div class="w-28 text-right">POENG</div>
           </div>`;
 
-        data.forEach(driver => {
-          const change = driver.position_current - driver.position_start;
+        champData.forEach((entry, index) => {
+          const driver = driverMap[entry.driver_number] || {};
+          const change = entry.position_current - entry.position_start;
           let changeHTML = '';
-          
-          if (change < 0) {
-            changeHTML = `<span class="text-emerald-400 text-sm">▲ ${Math.abs(change)}</span>`;
-          } else if (change > 0) {
-            changeHTML = `<span class="text-red-400 text-sm">▼ ${change}</span>`;
-          } else {
-            changeHTML = `<span class="text-slate-500 text-sm">–</span>`;
-          }
+
+          if (change < 0) changeHTML = `<span class="text-emerald-400 text-sm font-medium">▲ ${Math.abs(change)}</span>`;
+          else if (change > 0) changeHTML = `<span class="text-red-400 text-sm font-medium">▼ ${change}</span>`;
+          else changeHTML = `<span class="text-slate-500">–</span>`;
+
+          const teamColor = driver.team_colour ? `#${driver.team_colour}` : '#64748b';
 
           html += `
-            <div class="driver-row px-8 py-5 flex items-center gap-4 border-b border-slate-800 last:border-0 hover:bg-slate-800/50">
-              <div class="w-12 position text-center text-2xl text-white">${driver.position_current}</div>
+            <div class="driver-row px-8 py-5 flex items-center gap-6 border-b border-slate-800 last:border-none">
+              <div class="w-12 text-3xl font-bold text-white text-center">${entry.position_current}</div>
+              
               <div class="flex-1 flex items-center gap-4">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xl" 
-                     style="background-color: #${driver.team_colour || '374151'}">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-2xl shadow-inner" 
+                     style="background-color: ${teamColor}20; color: ${teamColor}">
                   🏎️
                 </div>
                 <div>
-                  <div class="font-semibold text-lg">${driver.driver_number ? `#${driver.driver_number}` : ''} ${driver.full_name || 'Ukjent'}</div>
-                  <div class="text-slate-400 text-sm">${driver.team_name || ''}</div>
+                  <div class="font-semibold text-xl">${driver.full_name || `#${entry.driver_number} Ukjent`}</div>
+                  <div class="text-sm text-slate-400">${driver.team_name || '—'}</div>
                 </div>
               </div>
-              <div class="flex items-center gap-3">
+
+              <div class="flex items-center gap-4 w-28">
                 ${changeHTML}
-                <div class="text-right">
-                  <div class="font-bold text-2xl text-white">${driver.points_current}</div>
+                <div class="text-right ml-auto">
+                  <div class="font-bold text-3xl text-white">${entry.points_current}</div>
                 </div>
               </div>
             </div>`;
@@ -109,17 +114,13 @@
         console.error(err);
         document.getElementById('standings').innerHTML = `
           <div class="p-12 text-center text-red-400">
-            Kunne ikke hente data fra OpenF1 API.<br>
-            Sjekk internettforbindelsen din.
+            Kunne ikke hente data.<br>Sjekk internettforbindelsen.
           </div>`;
       }
     }
 
-    // Last inn data ved oppstart
     fetchStandings();
-
-    // Oppdater hver 30. sekund (nyttig under løp)
-    setInterval(fetchStandings, 30000);
+    setInterval(fetchStandings, 30000); // Oppdater hvert 30. sekund
   </script>
 </body>
 </html>
