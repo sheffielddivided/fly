@@ -5,122 +5,195 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>F1 2026 • Sammenlagtstilling</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <style>
+    * { -webkit-tap-highlight-color: transparent; }
+
     body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+      background: #0a0d14;
       color: #e2e8f0;
       font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
     }
+
+    .bg-grid {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
     .driver-row {
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease;
+      cursor: pointer;
     }
-    .driver-row:hover {
-      background-color: #334155;
-      transform: scale(1.02);
+    .driver-row:hover  { background-color: rgba(255,255,255,0.04); }
+    .driver-row:active { background-color: rgba(255,255,255,0.07); }
+
+    .pos-p1 { color: #f59e0b; }
+    .pos-p2 { color: #94a3b8; }
+    .pos-p3 { color: #b45309; }
+
+    @keyframes skeleton-pulse {
+      0%, 100% { opacity: 0.3; }
+      50%       { opacity: 0.6; }
+    }
+    .skeleton {
+      background: #1e293b;
+      border-radius: 8px;
+      animation: skeleton-pulse 1.4s ease-in-out infinite;
+    }
+
+    .team-bar {
+      width: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      align-self: stretch;
+      min-height: 36px;
     }
   </style>
 </head>
-<body class="min-h-screen">
-  <div class="max-w-4xl mx-auto py-12 px-4">
-    <div class="flex items-center justify-between mb-10">
-      <div>
-        <h1 class="text-5xl font-bold tracking-tight text-white">F1 2026</h1>
-        <p class="text-xl text-slate-400">Sammenlagtstilling • Drivers' Championship</p>
+<body class="bg-grid">
+
+  <!-- Sticky header -->
+  <header class="sticky top-0 z-20 bg-black/70 backdrop-blur-lg border-b border-white/10"
+          style="padding-top: env(safe-area-inset-top)">
+    <div class="h-[3px] bg-red-600"></div>
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-2xl font-black tracking-tighter text-white">F1</span>
+          <span class="text-xs font-bold bg-red-600 text-white px-1.5 py-0.5 rounded">2026</span>
+        </div>
+        <span class="text-slate-600 text-sm">|</span>
+        <span class="text-slate-400 text-sm">Drivers' Championship</span>
       </div>
-      <div id="last-updated" class="text-sm text-slate-400"></div>
+      <div id="last-updated" class="text-xs text-slate-500 text-right leading-snug shrink-0"></div>
+    </div>
+  </header>
+
+  <!-- Standings card -->
+  <main class="max-w-2xl mx-auto px-3 pt-4 pb-8">
+    <div id="standings"
+         class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">
+      <!-- Filled by JS -->
+      <div class="p-4 flex flex-col gap-2" id="skeleton-loader">
+        <div class="skeleton h-10 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+        <div class="skeleton h-14 w-full"></div>
+      </div>
     </div>
 
-    <div id="standings" class="bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
-      <!-- Fylles dynamisk -->
-    </div>
-
-    <div class="text-center mt-8 text-slate-500 text-sm">
-      Data fra <a href="https://openf1.org" target="_blank" class="hover:text-white underline">OpenF1 API</a>
-    </div>
-  </div>
+    <p class="text-center mt-5 text-slate-600 text-xs">
+      Data fra <a href="https://openf1.org" target="_blank"
+                  class="hover:text-slate-400 underline underline-offset-2 transition-colors">OpenF1 API</a>
+    </p>
+  </main>
 
   <script>
+    const POS_COLORS = { 1: 'pos-p1', 2: 'pos-p2', 3: 'pos-p3' };
+
     async function fetchStandings() {
       try {
-        // Hent championship data
-        const champRes = await fetch('https://api.openf1.org/v1/championship_drivers?session_key=latest');
-        const champData = await champRes.json();
+        const [champRes, driversRes] = await Promise.all([
+          fetch('https://api.openf1.org/v1/championship_drivers?session_key=latest'),
+          fetch('https://api.openf1.org/v1/drivers?session_key=latest'),
+        ]);
 
-        // Hent driver info (navn, team, farge)
-        const driversRes = await fetch('https://api.openf1.org/v1/drivers?session_key=latest');
-        const driversData = await driversRes.json();
+        const [champData, driversData] = await Promise.all([champRes.json(), driversRes.json()]);
 
-        // Lag en lookup-tabell for drivere
         const driverMap = {};
-        driversData.forEach(d => {
-          driverMap[d.driver_number] = d;
-        });
+        driversData.forEach(d => { driverMap[d.driver_number] = d; });
 
-        if (!champData || champData.length === 0) {
-          document.getElementById('standings').innerHTML = `<div class="p-12 text-center">Ingen data tilgjengelig.</div>`;
+        if (!champData?.length) {
+          document.getElementById('standings').innerHTML =
+            `<div class="p-12 text-center text-slate-400 text-sm">Ingen data tilgjengelig.</div>`;
           return;
         }
 
-        // Sorter etter nåværende posisjon
         champData.sort((a, b) => a.position_current - b.position_current);
 
+        // Table header
         let html = `
-          <div class="px-8 py-6 border-b border-slate-700 flex items-center gap-6 text-slate-400 font-semibold">
-            <div class="w-12">POS</div>
-            <div class="flex-1">FØRER</div>
-            <div class="w-28 text-right">POENG</div>
+          <div class="px-4 py-2.5 border-b border-white/[0.06]
+                      flex items-center gap-3 text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
+            <div class="w-7 text-center">Pos</div>
+            <div class="w-px mx-1"></div>
+            <div class="flex-1">Fører</div>
+            <div class="w-8 text-center text-[9px]">±</div>
+            <div class="w-14 text-right">Pts</div>
           </div>`;
 
-        champData.forEach((entry, index) => {
-          const driver = driverMap[entry.driver_number] || {};
-          const change = entry.position_current - entry.position_start;
-          let changeHTML = '';
+        champData.forEach(entry => {
+          const driver   = driverMap[entry.driver_number] || {};
+          const change   = entry.position_current - entry.position_start;
+          const color    = driver.team_colour ? `#${driver.team_colour}` : '#475569';
+          const posClass = POS_COLORS[entry.position_current] || 'text-white';
+          const acronym  = driver.name_acronym || '';
+          const fullName = driver.full_name    || `#${entry.driver_number}`;
 
-          if (change < 0) changeHTML = `<span class="text-emerald-400 text-sm font-medium">▲ ${Math.abs(change)}</span>`;
-          else if (change > 0) changeHTML = `<span class="text-red-400 text-sm font-medium">▼ ${change}</span>`;
-          else changeHTML = `<span class="text-slate-500">–</span>`;
-
-          const teamColor = driver.team_colour ? `#${driver.team_colour}` : '#64748b';
+          let changeHTML;
+          if      (change < 0) changeHTML = `<span class="text-emerald-400 text-[11px] font-semibold">▲${Math.abs(change)}</span>`;
+          else if (change > 0) changeHTML = `<span class="text-red-400    text-[11px] font-semibold">▼${change}</span>`;
+          else                 changeHTML = `<span class="text-slate-700 text-sm">—</span>`;
 
           html += `
-            <div class="driver-row px-8 py-5 flex items-center gap-6 border-b border-slate-800 last:border-none">
-              <div class="w-12 text-3xl font-bold text-white text-center">${entry.position_current}</div>
-              
-              <div class="flex-1 flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full flex items-center justify-center text-2xl shadow-inner" 
-                     style="background-color: ${teamColor}20; color: ${teamColor}">
-                  🏎️
-                </div>
-                <div>
-                  <div class="font-semibold text-xl">${driver.full_name || `#${entry.driver_number} Ukjent`}</div>
-                  <div class="text-sm text-slate-400">${driver.team_name || '—'}</div>
-                </div>
+            <div class="driver-row flex items-center gap-3 px-4 py-3
+                        border-b border-white/[0.04] last:border-none">
+
+              <!-- Position -->
+              <div class="w-7 text-center font-bold text-base tabular-nums ${posClass}">
+                ${entry.position_current}
               </div>
 
-              <div class="flex items-center gap-4 w-28">
-                ${changeHTML}
-                <div class="text-right ml-auto">
-                  <div class="font-bold text-3xl text-white">${entry.points_current}</div>
+              <!-- Team colour bar -->
+              <div class="team-bar" style="background-color:${color}"></div>
+
+              <!-- Driver info -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-1.5 min-w-0">
+                  <span class="font-semibold text-sm text-white leading-tight truncate">${fullName}</span>
+                  ${acronym ? `<span class="text-slate-500 text-[10px] font-mono shrink-0">${acronym}</span>` : ''}
                 </div>
+                <div class="text-[11px] text-slate-500 truncate mt-0.5">${driver.team_name || '—'}</div>
+              </div>
+
+              <!-- Change -->
+              <div class="w-8 text-center">${changeHTML}</div>
+
+              <!-- Points -->
+              <div class="w-14 text-right">
+                <span class="font-bold text-lg text-white tabular-nums leading-none">${entry.points_current}</span>
+                <span class="text-slate-600 text-[10px] block">pts</span>
               </div>
             </div>`;
         });
 
         document.getElementById('standings').innerHTML = html;
-        document.getElementById('last-updated').textContent = `Oppdatert: ${new Date().toLocaleString('nb-NO')}`;
+
+        const now = new Date();
+        document.getElementById('last-updated').innerHTML =
+          `Oppdatert<br><span class="text-slate-400">${now.toLocaleTimeString('nb-NO')}</span>`;
 
       } catch (err) {
         console.error(err);
         document.getElementById('standings').innerHTML = `
-          <div class="p-12 text-center text-red-400">
-            Kunne ikke hente data.<br>Sjekk internettforbindelsen.
+          <div class="p-12 text-center text-sm">
+            <div class="text-red-400 font-semibold mb-1">Kunne ikke hente data</div>
+            <div class="text-slate-500">Sjekk internettforbindelsen</div>
           </div>`;
       }
     }
 
     fetchStandings();
-    setInterval(fetchStandings, 30000); // Oppdater hvert 30. sekund
+    setInterval(fetchStandings, 30_000);
   </script>
 </body>
 </html>
