@@ -414,10 +414,11 @@
             fetch(`https://api.openf1.org/v1/session_result?session_key=${cKey}`),
           ]);
           if (token !== t) return;
-          const [driversArr, results] = await Promise.all([dRes.json(), rRes.json()]);
+          const [driversArr, rawResults] = await Promise.all([dRes.json(), rRes.json()]);
           if (token !== t) return;
 
-          if (!Array.isArray(driversArr) || !Array.isArray(results)) throw new Error('Uventet API-svar');
+          if (!Array.isArray(driversArr)) throw new Error('Uventet API-svar');
+          const results = Array.isArray(rawResults) ? rawResults : [];
 
           const driverMap = {};
           driversArr.forEach(d => {
