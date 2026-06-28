@@ -349,22 +349,20 @@
         let cached = raceResultsCache[cKey];
 
         if (!cached) {
-          // Determine time window for position data.
-          // date_end is only set by OpenF1 for the most recent session, so we can't
-          // rely on it. For past races without date_end, estimate end as start + 2.5h.
           const isLiveRace = start <= now && (!session.date_end || new Date(session.date_end) >= now);
-          let from;
+
+          // For past races we can't reliably estimate when the race ended, so we
+          // fetch all position data for the session (cached after first load).
+          // For live races we only fetch the last 15 min to keep it fast.
+          let posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}`;
           if (session.date_end) {
-            const end = new Date(session.date_end);
-            from = new Date(end.getTime() - 5 * 60 * 1000).toISOString().slice(0, 19);
+            const end  = new Date(session.date_end);
+            const from = new Date(end.getTime() - 5 * 60 * 1000).toISOString().slice(0, 19);
+            posUrl += `&date>=${from}`;
           } else if (isLiveRace) {
-            from = new Date(now.getTime() - 15 * 60 * 1000).toISOString().slice(0, 19);
-          } else {
-            // Completed race without date_end: estimate end as start + 2.5 hours
-            const estimatedEnd = new Date(start.getTime() + 150 * 60 * 1000);
-            from = new Date(estimatedEnd.getTime() - 10 * 60 * 1000).toISOString().slice(0, 19);
+            const from = new Date(now.getTime() - 15 * 60 * 1000).toISOString().slice(0, 19);
+            posUrl += `&date>=${from}`;
           }
-          const posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}&date%3E=${from}`;
 
           const [dRes, pRes] = await Promise.all([
             fetch(`https://api.openf1.org/v1/drivers?session_key=${cKey}`),
