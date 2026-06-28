@@ -349,11 +349,22 @@
         let cached = raceResultsCache[cKey];
 
         if (!cached) {
-          // Build position URL — fetch last 5 min for completed, last 10 min for live
-          const end    = session.date_end ? new Date(session.date_end) : now;
-          const window = session.date_end ? 5 : 10;
-          const from   = new Date(end.getTime() - window * 60 * 1000).toISOString().slice(0, 19);
-          const posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}&date>=${from}`;
+          // Determine time window for position data.
+          // date_end is only set by OpenF1 for the most recent session, so we can't
+          // rely on it. For past races without date_end, estimate end as start + 2.5h.
+          const isLiveRace = start <= now && (!session.date_end || new Date(session.date_end) >= now);
+          let from;
+          if (session.date_end) {
+            const end = new Date(session.date_end);
+            from = new Date(end.getTime() - 5 * 60 * 1000).toISOString().slice(0, 19);
+          } else if (isLiveRace) {
+            from = new Date(now.getTime() - 15 * 60 * 1000).toISOString().slice(0, 19);
+          } else {
+            // Completed race without date_end: estimate end as start + 2.5 hours
+            const estimatedEnd = new Date(start.getTime() + 150 * 60 * 1000);
+            from = new Date(estimatedEnd.getTime() - 10 * 60 * 1000).toISOString().slice(0, 19);
+          }
+          const posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}&date%3E=${from}`;
 
           const [dRes, pRes] = await Promise.all([
             fetch(`https://api.openf1.org/v1/drivers?session_key=${cKey}`),
@@ -362,6 +373,10 @@
           if (token !== t) return;
           const [driversArr, posArr] = await Promise.all([dRes.json(), pRes.json()]);
           if (token !== t) return;
+
+          if (!Array.isArray(driversArr) || !Array.isArray(posArr)) {
+            throw new Error('Uventet API-svar');
+          }
 
           const driverMap = {};
           driversArr.forEach(d => { driverMap[d.driver_number] = d; });
@@ -375,18 +390,18 @@
           });
 
           const positions = Object.values(lastPos).sort((a, b) => a.position - b.position);
-          cached = { driverMap, positions };
+          cached = { driverMap, positions, isLiveRace };
 
           // Only persist cache for completed races
-          if (session.date_end && new Date(session.date_end) < now) {
+          if (!isLiveRace) {
             raceResultsCache[cKey] = cached;
           }
         }
 
         if (token !== t) return;
 
-        const { driverMap, positions } = cached;
-        const isLive = !session.date_end || new Date(session.date_end) >= now;
+        const { driverMap, positions, isLiveRace } = cached;
+        const isLive = isLiveRace;
 
         if (!positions.length) {
           $('content').innerHTML = `
