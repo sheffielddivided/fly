@@ -34,17 +34,14 @@
 </head>
 <body class="bg-grid">
 
-  <!-- Sticky header -->
   <header class="sticky top-0 z-20 bg-black/75 backdrop-blur-lg border-b border-white/10"
           style="padding-top:env(safe-area-inset-top)">
     <div class="h-[3px] bg-red-600"></div>
     <div id="hdr" class="max-w-2xl mx-auto px-4 py-3"></div>
   </header>
 
-  <!-- Content -->
   <main id="content" class="max-w-2xl mx-auto px-3 pt-4 pb-24"></main>
 
-  <!-- Bottom nav -->
   <nav class="fixed bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-lg border-t border-white/10"
        style="padding-bottom:env(safe-area-inset-bottom)">
     <div class="max-w-2xl mx-auto flex">
@@ -61,13 +58,17 @@
 
   <script>
     /* ── state ─────────────────────────────────────── */
-    let view   = 'championship';  // championship | races | race-detail
+    let view      = 'championship'; // championship | races | race-detail | driver-detail
     let activeTab = 'championship';
-    let raceList  = null;         // cached list of {meeting, session}
-    let openRace  = null;         // currently open race
-    let token = 0;                // incremented on every view switch to cancel stale fetches
+    let raceList  = null;
+    let openRace  = null;
+    let openDriverNum = null;
+    let savedContent  = '';
+    let savedPrevView = null; // { view, openRace }
+    let token = 0;
 
     const raceResultsCache = {};
+    const driverCache = {}; // driver_number → { info, champEntry }
 
     /* ── helpers ───────────────────────────────────── */
     const $ = id => document.getElementById(id);
@@ -104,23 +105,47 @@
       return '';
     }
 
-    function skeletons(n, h='h-14') {
+    function posDisplay(result) {
+      if (!result) return `<span class="text-slate-700">—</span>`;
+      if (result.dnf) return `<span class="text-red-400 text-[10px] font-bold">DNF</span>`;
+      if (result.dns) return `<span class="text-slate-500 text-[10px] font-bold">DNS</span>`;
+      if (result.dsq) return `<span class="text-orange-400 text-[10px] font-bold">DSQ</span>`;
+      const cl = MEDAL[result.position] || 'text-white';
+      return `<span class="font-bold text-base tabular-nums ${cl}">${result.position}</span>`;
+    }
+
+    function skeletons(n, h = 'h-14') {
       return Array(n).fill(`<div class="skeleton ${h} w-full rounded-xl"></div>`).join('');
+    }
+
+    function backBtn(onclick) {
+      return `<button onclick="${onclick}" class="p-1 -ml-1 text-slate-400 hover:text-white transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>`;
     }
 
     const MEDAL = { 1:'pos-p1', 2:'pos-p2', 3:'pos-p3' };
 
     /* ── header ────────────────────────────────────── */
     function renderHeader() {
-      if (view === 'race-detail' && openRace) {
+      if (view === 'driver-detail') {
+        const d = (driverCache[openDriverNum] || {}).info || {};
+        const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
         $('hdr').innerHTML = `
           <div class="flex items-center gap-3">
-            <button onclick="backToRaces()"
-                    class="p-1 -ml-1 text-slate-400 hover:text-white transition-colors">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-              </svg>
-            </button>
+            ${backBtn('backFromDriver()')}
+            <div class="w-1 h-6 rounded-full shrink-0" style="background-color:${tc}"></div>
+            <div class="min-w-0">
+              <div class="text-base font-bold text-white leading-tight truncate">${d.full_name || `Fører #${openDriverNum}`}</div>
+              <div class="text-xs text-slate-500 truncate">${d.team_name || ''}</div>
+            </div>
+          </div>`;
+      } else if (view === 'race-detail' && openRace) {
+        $('hdr').innerHTML = `
+          <div class="flex items-center gap-3">
+            ${backBtn('backToRaces()')}
             <div>
               <div class="text-base font-bold text-white leading-tight">
                 ${flag(openRace.meeting.country_code)}
@@ -164,6 +189,24 @@
       renderCachedRaceList();
     }
 
+    /* ── driver detail navigation ──────────────────── */
+    function openDriverDetail(driverNum) {
+      savedContent  = $('content').innerHTML;
+      savedPrevView = { view, openRace };
+      openDriverNum = driverNum;
+      view = 'driver-detail';
+      renderHeader();
+      loadDriverDetail(driverNum);
+    }
+
+    function backFromDriver() {
+      view    = savedPrevView.view;
+      openRace = savedPrevView.openRace;
+      openDriverNum = null;
+      renderHeader();
+      $('content').innerHTML = savedContent;
+    }
+
     /* ── championship ──────────────────────────────── */
     function champCard(inner) {
       return `<div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">${inner}</div>
@@ -195,6 +238,11 @@
 
         champ.sort((a, b) => a.position_current - b.position_current);
 
+        // Populate driver cache
+        champ.forEach(e => {
+          driverCache[e.driver_number] = { info: dm[e.driver_number] || {}, champEntry: e };
+        });
+
         let rows = `
           <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-3
                       text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
@@ -217,7 +265,8 @@
               : `<span class="text-slate-700">—</span>`;
 
           rows += `
-            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none">
+            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none"
+                 onclick="openDriverDetail(${e.driver_number})">
               <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${e.position_current}</div>
               <div class="team-bar" style="background-color:${tc}"></div>
               <div class="flex-1 min-w-0">
@@ -251,32 +300,28 @@
     }
 
     /* ── race list ─────────────────────────────────── */
+    async function ensureRaceList() {
+      if (raceList) return;
+      const [mRes, sRes] = await Promise.all([
+        fetch('https://api.openf1.org/v1/meetings?year=2026'),
+        fetch('https://api.openf1.org/v1/sessions?year=2026&session_type=Race'),
+      ]);
+      const [meetings, sessions] = await Promise.all([mRes.json(), sRes.json()]);
+      const byMeeting = {};
+      sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
+      raceList = meetings
+        .filter(m => byMeeting[m.meeting_key])
+        .map(m => ({ meeting: m, session: byMeeting[m.meeting_key] }))
+        .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
+    }
+
     async function loadRaceList() {
       const t = ++token;
       $('content').innerHTML = `<div class="flex flex-col gap-2">${skeletons(8, 'h-[68px]')}</div>`;
-
       try {
-        if (!raceList) {
-          const [mRes, sRes] = await Promise.all([
-            fetch('https://api.openf1.org/v1/meetings?year=2026'),
-            fetch('https://api.openf1.org/v1/sessions?year=2026&session_type=Race'),
-          ]);
-          if (token !== t) return;
-          const [meetings, sessions] = await Promise.all([mRes.json(), sRes.json()]);
-          if (token !== t) return;
-
-          const byMeeting = {};
-          sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
-
-          raceList = meetings
-            .filter(m => byMeeting[m.meeting_key])
-            .map(m => ({ meeting: m, session: byMeeting[m.meeting_key] }))
-            .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
-        }
-
+        await ensureRaceList();
         if (token !== t) return;
         renderCachedRaceList();
-
       } catch (err) {
         console.error(err);
         if (token !== t) return;
@@ -293,16 +338,14 @@
         $('content').innerHTML = '<div class="p-12 text-center text-slate-400 text-sm">Ingen løp tilgjengelig.</div>';
         return;
       }
-
       const now = new Date();
       let html = '';
-
       raceList.forEach(({ meeting, session }, i) => {
         const start  = new Date(session.date_start);
         const end    = session.date_end ? new Date(session.date_end) : null;
         const isPast = end && end < now;
-        const isLive = start <= now && !isPast;
-        const isNext = !isPast && !isLive;
+        const isLive = start <= now && !isPast && (now - start) < 4 * 60 * 60 * 1000;
+        const isNext = start > now;
 
         let badge = '';
         if (isLive) {
@@ -320,21 +363,16 @@
             <div class="text-3xl leading-none shrink-0 w-10 text-center">${flag(meeting.country_code)}</div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-semibold text-sm text-white leading-snug">
-                  ${meeting.meeting_name || meeting.circuit_short_name}
-                </span>
+                <span class="font-semibold text-sm text-white leading-snug">${meeting.meeting_name || meeting.circuit_short_name}</span>
                 ${badge}
               </div>
-              <div class="text-[11px] text-slate-500 mt-0.5">
-                Runde ${i + 1} · ${fmtDate(session.date_start)}
-              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5">Runde ${i + 1} · ${fmtDate(session.date_start)}</div>
             </div>
             <svg class="w-4 h-4 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
           </div>`;
       });
-
       $('content').innerHTML = html;
     }
 
@@ -379,19 +417,19 @@
           const [driversArr, results] = await Promise.all([dRes.json(), rRes.json()]);
           if (token !== t) return;
 
-          if (!Array.isArray(driversArr) || !Array.isArray(results)) {
-            throw new Error('Uventet API-svar');
-          }
+          if (!Array.isArray(driversArr) || !Array.isArray(results)) throw new Error('Uventet API-svar');
 
           const driverMap = {};
-          driversArr.forEach(d => { driverMap[d.driver_number] = d; });
+          driversArr.forEach(d => {
+            driverMap[d.driver_number] = d;
+            // Populate driver cache without overwriting an existing champEntry
+            if (!driverCache[d.driver_number]) driverCache[d.driver_number] = { info: d, champEntry: null };
+            else driverCache[d.driver_number].info = d;
+          });
 
           const positions = [...results].sort((a, b) => (a.position || 999) - (b.position || 999));
           cached = { driverMap, positions };
-
-          if (positions.length > 0) {
-            raceResultsCache[cKey] = cached;
-          }
+          if (positions.length > 0) raceResultsCache[cKey] = cached;
         }
 
         if (token !== t) return;
@@ -427,8 +465,9 @@
           const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
 
           html += `
-            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none">
-              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${entry.position}</div>
+            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none"
+                 onclick="openDriverDetail(${entry.driver_number})">
+              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${entry.position || '—'}</div>
               <div class="team-bar" style="background-color:${tc}"></div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline gap-1.5">
@@ -450,6 +489,106 @@
         $('content').innerHTML = `
           <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center text-sm shadow-2xl">
             <div class="text-red-400 font-semibold mb-1">Kunne ikke hente resultater</div>
+            <div class="text-slate-500">Sjekk internettforbindelsen</div>
+          </div>`;
+      }
+    }
+
+    /* ── driver detail ─────────────────────────────── */
+    async function loadDriverDetail(driverNum) {
+      const t = ++token;
+      $('content').innerHTML = `<div class="flex flex-col gap-3">${skeletons(1,'h-44')}${skeletons(10)}</div>`;
+
+      try {
+        await ensureRaceList();
+        if (token !== t) return;
+
+        const res = await fetch(`https://api.openf1.org/v1/session_result?driver_number=${driverNum}`);
+        if (token !== t) return;
+        const allResults = await res.json();
+        if (token !== t) return;
+
+        if (!Array.isArray(allResults)) throw new Error('Uventet API-svar');
+
+        // Filter to 2026 race session_keys
+        const raceSessionKeys = new Set(raceList.map(r => r.session.session_key));
+        const resultBySession = {};
+        allResults.forEach(r => {
+          if (raceSessionKeys.has(r.session_key)) resultBySession[r.session_key] = r;
+        });
+
+        const cached = driverCache[driverNum] || {};
+        const d      = cached.info || {};
+        const champ  = cached.champEntry || null;
+        const tc     = d.team_colour ? `#${d.team_colour}` : '#475569';
+
+        // ── Driver card ──
+        let html = `
+          <div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 shadow-2xl">
+            <div class="h-1" style="background-color:${tc}"></div>
+            <div class="p-5 flex items-center gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="text-6xl font-black tabular-nums leading-none mb-2 select-none"
+                     style="color:${tc}30; -webkit-text-stroke:1px ${tc}60">${driverNum}</div>
+                <div class="font-bold text-xl text-white leading-tight -mt-1">${d.full_name || `#${driverNum}`}</div>
+                <div class="text-sm text-slate-400 mt-0.5">${d.team_name || '—'}</div>
+                ${d.country_code ? `<div class="text-base mt-2">${flag(d.country_code)}</div>` : ''}
+              </div>
+              ${d.headshot_url
+                ? `<img src="${d.headshot_url}" alt="${d.full_name}"
+                        class="w-28 h-28 rounded-2xl object-cover shrink-0 border border-white/10"
+                        onerror="this.style.display='none'" />`
+                : ''}
+            </div>
+            ${champ ? `
+            <div class="px-5 pb-5 grid grid-cols-2 gap-3">
+              <div class="bg-black/30 rounded-xl p-3 text-center border border-white/[0.05]">
+                <div class="text-3xl font-black text-white tabular-nums">${champ.position_current}</div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Stilling</div>
+              </div>
+              <div class="bg-black/30 rounded-xl p-3 text-center border border-white/[0.05]">
+                <div class="text-3xl font-black text-white tabular-nums">${champ.points_current}</div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Poeng</div>
+              </div>
+            </div>` : ''}
+          </div>`;
+
+        // ── Race results ──
+        html += `
+          <div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 shadow-2xl">
+            <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-3
+                        text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
+              <div class="w-7 text-center">Rnd</div>
+              <div class="flex-1">Grand Prix</div>
+              <div class="w-12 text-right">Pos</div>
+            </div>`;
+
+        const now = new Date();
+        raceList.forEach(({ meeting, session }, i) => {
+          const upcoming = new Date(session.date_start) > now;
+          const result   = resultBySession[session.session_key];
+
+          html += `
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none
+                        ${upcoming ? 'opacity-35' : ''}">
+              <div class="w-7 text-center text-slate-500 text-xs tabular-nums">${i + 1}</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm text-white truncate">${flag(meeting.country_code)} ${meeting.meeting_name || meeting.circuit_short_name}</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">${fmtDate(session.date_start)}</div>
+              </div>
+              <div class="w-12 text-right">${posDisplay(upcoming ? null : result)}</div>
+            </div>`;
+        });
+
+        html += `</div>`;
+        $('content').innerHTML = html;
+
+      } catch (err) {
+        console.error(err);
+        if (token !== t) return;
+        $('content').innerHTML = `
+          <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center text-sm">
+            <div class="text-red-400 font-semibold mb-1">Kunne ikke hente førerinformasjon</div>
             <div class="text-slate-500">Sjekk internettforbindelsen</div>
           </div>`;
       }
