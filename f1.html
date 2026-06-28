@@ -438,7 +438,7 @@
         if (!positions.length) {
           $('content').innerHTML = `
             <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center">
-              <div class="text-slate-400 text-sm">Resultater publiseres snart etter løpet.</div>
+              <div class="text-slate-400 text-sm">Ingen resultater tilgjengelig — løpet kan ha blitt kansellert eller utsatt.</div>
             </div>`;
           setTimeout(() => {
             if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
