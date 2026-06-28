@@ -82,6 +82,28 @@
       return new Date(s).toLocaleDateString('nb-NO', { day:'numeric', month:'short', year:'numeric' });
     }
 
+    function fmtRaceTime(sec) {
+      if (!sec && sec !== 0) return '';
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = (sec % 60).toFixed(3).padStart(6, '0');
+      return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${s}` : `${m}:${s}`;
+    }
+
+    function fmtGap(entry) {
+      if (entry.dsq) return `<span class="text-orange-400 text-[10px] font-bold">DSQ</span>`;
+      if (entry.dns) return `<span class="text-slate-500 text-[10px] font-bold">DNS</span>`;
+      if (entry.dnf) return `<span class="text-red-400 text-[10px] font-bold">DNF</span>`;
+      if (entry.position === 1) {
+        const t = fmtRaceTime(entry.duration);
+        return t ? `<span class="text-slate-300 text-[10px] tabular-nums">${t}</span>` : '';
+      }
+      const g = entry.gap_to_leader;
+      if (typeof g === 'string' && g) return `<span class="text-slate-400 text-[10px]">${g}</span>`;
+      if (typeof g === 'number') return `<span class="text-slate-400 text-[10px] tabular-nums">+${g.toFixed(3)}s</span>`;
+      return '';
+    }
+
     function skeletons(n, h='h-14') {
       return Array(n).fill(`<div class="skeleton ${h} w-full rounded-xl"></div>`).join('');
     }
@@ -349,122 +371,78 @@
         let cached = raceResultsCache[cKey];
 
         if (!cached) {
-          // A race is live only if it started recently (within 4 hours) AND hasn't
-          // finished. date_end is null for most historical sessions in OpenF1, so
-          // we can't use !date_end as a "live" signal — that would wrongly treat
-          // every old race as live and apply a "now - 15min" filter to it.
-          const isLiveRace = session.date_end
-            ? new Date(session.date_end) > now
-            : (now - start) < 4 * 60 * 60 * 1000;
-
-          // Build position URL:
-          //  - Completed race with date_end  → last 5 min of session (small payload)
-          //  - Live race                     → last 15 min (rolling window)
-          //  - Completed race, no date_end   → no filter; fetch full session & cache
-          let posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}`;
-          if (!isLiveRace && session.date_end) {
-            const end  = new Date(session.date_end);
-            const from = new Date(end.getTime() - 5 * 60 * 1000).toISOString().slice(0, 19);
-            posUrl += `&date>=${from}`;
-          } else if (isLiveRace) {
-            const from = new Date(now.getTime() - 15 * 60 * 1000).toISOString().slice(0, 19);
-            posUrl += `&date>=${from}`;
-          }
-
-          const [dRes, pRes] = await Promise.all([
+          const [dRes, rRes] = await Promise.all([
             fetch(`https://api.openf1.org/v1/drivers?session_key=${cKey}`),
-            fetch(posUrl),
+            fetch(`https://api.openf1.org/v1/session_result?session_key=${cKey}`),
           ]);
           if (token !== t) return;
-          const [driversArr, posArr] = await Promise.all([dRes.json(), pRes.json()]);
+          const [driversArr, results] = await Promise.all([dRes.json(), rRes.json()]);
           if (token !== t) return;
 
-          if (!Array.isArray(driversArr) || !Array.isArray(posArr)) {
+          if (!Array.isArray(driversArr) || !Array.isArray(results)) {
             throw new Error('Uventet API-svar');
           }
 
           const driverMap = {};
           driversArr.forEach(d => { driverMap[d.driver_number] = d; });
 
-          // Last recorded position per driver
-          const lastPos = {};
-          posArr.forEach(p => {
-            if (!lastPos[p.driver_number] || p.date > lastPos[p.driver_number].date) {
-              lastPos[p.driver_number] = p;
-            }
-          });
+          const positions = [...results].sort((a, b) => a.position - b.position);
+          cached = { driverMap, positions };
 
-          const positions = Object.values(lastPos).sort((a, b) => a.position - b.position);
-          cached = { driverMap, positions, isLiveRace };
-
-          // Only persist cache for completed races
-          if (!isLiveRace) {
+          if (positions.length > 0) {
             raceResultsCache[cKey] = cached;
           }
         }
 
         if (token !== t) return;
-
-        const { driverMap, positions, isLiveRace } = cached;
-        const isLive = isLiveRace;
+        const { driverMap, positions } = cached;
 
         if (!positions.length) {
           $('content').innerHTML = `
             <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center">
-              <div class="text-slate-400 text-sm">Ingen resultatdata tilgjengelig ennå.</div>
+              <div class="text-slate-400 text-sm">Resultater publiseres snart etter løpet.</div>
             </div>`;
+          setTimeout(() => {
+            if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
+              delete raceResultsCache[cKey];
+              loadRaceDetail({ meeting, session });
+            }
+          }, 60_000);
           return;
         }
 
-        let html = '';
-        if (isLive) {
-          html += `
-            <div class="flex items-center gap-2 mb-3 px-1">
-              <span class="inline-flex items-center gap-1 bg-red-600/90 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">
-                <span class="live-dot w-1.5 h-1.5 bg-white rounded-full"></span>LIVE
-              </span>
-              <span class="text-slate-400 text-xs">Oppdateres hvert 30. sek</span>
+        let html = `
+          <div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">
+            <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-3
+                        text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
+              <div class="w-7 text-center">Pos</div>
+              <div class="w-px mx-1"></div>
+              <div class="flex-1">Fører</div>
+              <div class="shrink-0 text-right">Tid / gap</div>
             </div>`;
-        }
 
-        html += `<div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">
-          <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-3
-                      text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
-            <div class="w-7 text-center">Pos</div>
-            <div class="w-px mx-1"></div>
-            <div class="flex-1">Fører</div>
-          </div>`;
-
-        positions.forEach(pos => {
-          const d  = driverMap[pos.driver_number] || {};
-          const cl = MEDAL[pos.position] || 'text-white';
+        positions.forEach(entry => {
+          const d  = driverMap[entry.driver_number] || {};
+          const cl = MEDAL[entry.position] || 'text-white';
           const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
 
           html += `
             <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none">
-              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${pos.position}</div>
+              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${entry.position}</div>
               <div class="team-bar" style="background-color:${tc}"></div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline gap-1.5">
-                  <span class="font-semibold text-sm text-white truncate">${d.full_name || `#${pos.driver_number}`}</span>
+                  <span class="font-semibold text-sm text-white truncate">${d.full_name || `#${entry.driver_number}`}</span>
                   ${d.name_acronym ? `<span class="text-slate-500 text-[10px] font-mono shrink-0">${d.name_acronym}</span>` : ''}
                 </div>
                 <div class="text-[11px] text-slate-500 truncate mt-0.5">${d.team_name || '—'}</div>
               </div>
+              <div class="shrink-0 text-right">${fmtGap(entry)}</div>
             </div>`;
         });
 
         html += `</div>`;
         $('content').innerHTML = html;
-
-        // Re-fetch if live
-        if (isLive) {
-          setTimeout(() => {
-            if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
-              loadRaceDetail({ meeting, session });
-            }
-          }, 30_000);
-        }
 
       } catch (err) {
         console.error(err);
