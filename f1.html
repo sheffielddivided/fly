@@ -3,127 +3,179 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>F1 2026 • Sammenlagtstilling</title>
+  <title>F1 2026</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
-
     body {
       background: #0a0d14;
       color: #e2e8f0;
       font-family: system-ui, -apple-system, sans-serif;
       min-height: 100vh;
-      padding-bottom: env(safe-area-inset-bottom);
     }
-
     .bg-grid {
       background-image:
         linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
       background-size: 40px 40px;
     }
-
-    .driver-row {
-      transition: background-color 0.15s ease;
-      cursor: pointer;
-    }
-    .driver-row:hover  { background-color: rgba(255,255,255,0.04); }
-    .driver-row:active { background-color: rgba(255,255,255,0.07); }
-
+    .tappable { transition: background-color 0.15s ease; cursor: pointer; }
+    .tappable:hover  { background-color: rgba(255,255,255,0.04); }
+    .tappable:active { background-color: rgba(255,255,255,0.08); }
     .pos-p1 { color: #f59e0b; }
     .pos-p2 { color: #94a3b8; }
-    .pos-p3 { color: #b45309; }
-
-    @keyframes skeleton-pulse {
-      0%, 100% { opacity: 0.3; }
-      50%       { opacity: 0.6; }
-    }
-    .skeleton {
-      background: #1e293b;
-      border-radius: 8px;
-      animation: skeleton-pulse 1.4s ease-in-out infinite;
-    }
-
-    .team-bar {
-      width: 3px;
-      border-radius: 2px;
-      flex-shrink: 0;
-      align-self: stretch;
-      min-height: 36px;
-    }
+    .pos-p3 { color: #cd7f32; }
+    .team-bar { width: 3px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 36px; }
+    @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:.6} }
+    .skeleton { background:#1e293b; border-radius:8px; animation:pulse 1.4s ease-in-out infinite; }
+    @keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .live-dot { animation: livepulse 1.2s ease-in-out infinite; }
   </style>
 </head>
 <body class="bg-grid">
 
   <!-- Sticky header -->
-  <header class="sticky top-0 z-20 bg-black/70 backdrop-blur-lg border-b border-white/10"
-          style="padding-top: env(safe-area-inset-top)">
+  <header class="sticky top-0 z-20 bg-black/75 backdrop-blur-lg border-b border-white/10"
+          style="padding-top:env(safe-area-inset-top)">
     <div class="h-[3px] bg-red-600"></div>
-    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="flex items-baseline gap-1.5">
-          <span class="text-2xl font-black tracking-tighter text-white">F1</span>
-          <span class="text-xs font-bold bg-red-600 text-white px-1.5 py-0.5 rounded">2026</span>
-        </div>
-        <span class="text-slate-600 text-sm">|</span>
-        <span class="text-slate-400 text-sm">Drivers' Championship</span>
-      </div>
-      <div id="last-updated" class="text-xs text-slate-500 text-right leading-snug shrink-0"></div>
-    </div>
+    <div id="hdr" class="max-w-2xl mx-auto px-4 py-3"></div>
   </header>
 
-  <!-- Standings card -->
-  <main class="max-w-2xl mx-auto px-3 pt-4 pb-8">
-    <div id="standings"
-         class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">
-      <!-- Filled by JS -->
-      <div class="p-4 flex flex-col gap-2" id="skeleton-loader">
-        <div class="skeleton h-10 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-        <div class="skeleton h-14 w-full"></div>
-      </div>
-    </div>
+  <!-- Content -->
+  <main id="content" class="max-w-2xl mx-auto px-3 pt-4 pb-24"></main>
 
-    <p class="text-center mt-5 text-slate-600 text-xs">
-      Data fra <a href="https://openf1.org" target="_blank"
-                  class="hover:text-slate-400 underline underline-offset-2 transition-colors">OpenF1 API</a>
-    </p>
-  </main>
+  <!-- Bottom nav -->
+  <nav class="fixed bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-lg border-t border-white/10"
+       style="padding-bottom:env(safe-area-inset-bottom)">
+    <div class="max-w-2xl mx-auto flex">
+      <button id="nt-champ" onclick="showTab('championship')"
+              class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium text-white transition-colors">
+        <span class="text-xl">🏆</span><span>Mesterskap</span>
+      </button>
+      <button id="nt-races" onclick="showTab('races')"
+              class="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium text-slate-500 transition-colors">
+        <span class="text-xl">🏁</span><span>Løp</span>
+      </button>
+    </div>
+  </nav>
 
   <script>
-    const POS_COLORS = { 1: 'pos-p1', 2: 'pos-p2', 3: 'pos-p3' };
+    /* ── state ─────────────────────────────────────── */
+    let view   = 'championship';  // championship | races | race-detail
+    let activeTab = 'championship';
+    let raceList  = null;         // cached list of {meeting, session}
+    let openRace  = null;         // currently open race
+    let token = 0;                // incremented on every view switch to cancel stale fetches
 
-    async function fetchStandings() {
+    const raceResultsCache = {};
+
+    /* ── helpers ───────────────────────────────────── */
+    const $ = id => document.getElementById(id);
+
+    function flag(cc) {
+      if (!cc || cc.length !== 2) return '🏁';
+      return [...cc.toUpperCase()].map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join('');
+    }
+
+    function fmtDate(s) {
+      if (!s) return '';
+      return new Date(s).toLocaleDateString('nb-NO', { day:'numeric', month:'short', year:'numeric' });
+    }
+
+    function skeletons(n, h='h-14') {
+      return Array(n).fill(`<div class="skeleton ${h} w-full rounded-xl"></div>`).join('');
+    }
+
+    const MEDAL = { 1:'pos-p1', 2:'pos-p2', 3:'pos-p3' };
+
+    /* ── header ────────────────────────────────────── */
+    function renderHeader() {
+      if (view === 'race-detail' && openRace) {
+        $('hdr').innerHTML = `
+          <div class="flex items-center gap-3">
+            <button onclick="backToRaces()"
+                    class="p-1 -ml-1 text-slate-400 hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div>
+              <div class="text-base font-bold text-white leading-tight">
+                ${flag(openRace.meeting.country_code)}
+                ${openRace.meeting.meeting_name || openRace.meeting.circuit_short_name}
+              </div>
+              <div class="text-xs text-slate-500">${fmtDate(openRace.session.date_start)}</div>
+            </div>
+          </div>`;
+      } else {
+        const label = view === 'races' ? 'Løp' : 'Mesterskap';
+        $('hdr').innerHTML = `
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-black tracking-tighter text-white">F1</span>
+                <span class="text-xs font-bold bg-red-600 text-white px-1.5 py-0.5 rounded">2026</span>
+              </div>
+              <span class="text-slate-600 text-sm">|</span>
+              <span class="text-slate-400 text-sm">${label}</span>
+            </div>
+            <div id="ts" class="text-xs text-slate-500 text-right leading-snug shrink-0"></div>
+          </div>`;
+      }
+    }
+
+    /* ── tabs ──────────────────────────────────────── */
+    function showTab(tab) {
+      activeTab = tab;
+      $('nt-champ').className = `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${tab==='championship' ? 'text-white' : 'text-slate-500'}`;
+      $('nt-races').className  = `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${tab==='races' ? 'text-white' : 'text-slate-500'}`;
+      view = tab;
+      renderHeader();
+      if (tab === 'championship') loadChampionship();
+      else                        loadRaceList();
+    }
+
+    function backToRaces() {
+      openRace = null;
+      view = 'races';
+      renderHeader();
+      renderCachedRaceList();
+    }
+
+    /* ── championship ──────────────────────────────── */
+    function champCard(inner) {
+      return `<div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">${inner}</div>
+              <p class="text-center mt-5 text-slate-600 text-xs">Data fra
+                <a href="https://openf1.org" target="_blank" class="hover:text-slate-400 underline underline-offset-2 transition-colors">OpenF1 API</a>
+              </p>`;
+    }
+
+    async function loadChampionship(silent = false) {
+      const t = ++token;
+      if (!silent) $('content').innerHTML = champCard(`<div class="p-4 flex flex-col gap-2">${skeletons(10)}</div>`);
+
       try {
-        const [champRes, driversRes] = await Promise.all([
+        const [cR, dR] = await Promise.all([
           fetch('https://api.openf1.org/v1/championship_drivers?session_key=latest'),
           fetch('https://api.openf1.org/v1/drivers?session_key=latest'),
         ]);
+        if (token !== t) return;
+        const [champ, driversArr] = await Promise.all([cR.json(), dR.json()]);
+        if (token !== t) return;
 
-        const [champData, driversData] = await Promise.all([champRes.json(), driversRes.json()]);
+        const dm = {};
+        driversArr.forEach(d => { dm[d.driver_number] = d; });
 
-        const driverMap = {};
-        driversData.forEach(d => { driverMap[d.driver_number] = d; });
-
-        if (!champData?.length) {
-          document.getElementById('standings').innerHTML =
-            `<div class="p-12 text-center text-slate-400 text-sm">Ingen data tilgjengelig.</div>`;
+        if (!champ?.length) {
+          $('content').innerHTML = champCard('<div class="p-12 text-center text-slate-400 text-sm">Ingen data tilgjengelig.</div>');
           return;
         }
 
-        champData.sort((a, b) => a.position_current - b.position_current);
+        champ.sort((a, b) => a.position_current - b.position_current);
 
-        // Table header
-        let html = `
-          <div class="px-4 py-2.5 border-b border-white/[0.06]
-                      flex items-center gap-3 text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
+        let rows = `
+          <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-3
+                      text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
             <div class="w-7 text-center">Pos</div>
             <div class="w-px mx-1"></div>
             <div class="flex-1">Fører</div>
@@ -131,69 +183,287 @@
             <div class="w-14 text-right">Pts</div>
           </div>`;
 
-        champData.forEach(entry => {
-          const driver   = driverMap[entry.driver_number] || {};
-          const change   = entry.position_current - entry.position_start;
-          const color    = driver.team_colour ? `#${driver.team_colour}` : '#475569';
-          const posClass = POS_COLORS[entry.position_current] || 'text-white';
-          const acronym  = driver.name_acronym || '';
-          const fullName = driver.full_name    || `#${entry.driver_number}`;
+        champ.forEach(e => {
+          const d  = dm[e.driver_number] || {};
+          const ch = e.position_current - e.position_start;
+          const cl = MEDAL[e.position_current] || 'text-white';
+          const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
+          const chHtml = ch < 0
+            ? `<span class="text-emerald-400 text-[11px] font-semibold">▲${Math.abs(ch)}</span>`
+            : ch > 0
+              ? `<span class="text-red-400 text-[11px] font-semibold">▼${ch}</span>`
+              : `<span class="text-slate-700">—</span>`;
 
-          let changeHTML;
-          if      (change < 0) changeHTML = `<span class="text-emerald-400 text-[11px] font-semibold">▲${Math.abs(change)}</span>`;
-          else if (change > 0) changeHTML = `<span class="text-red-400    text-[11px] font-semibold">▼${change}</span>`;
-          else                 changeHTML = `<span class="text-slate-700 text-sm">—</span>`;
-
-          html += `
-            <div class="driver-row flex items-center gap-3 px-4 py-3
-                        border-b border-white/[0.04] last:border-none">
-
-              <!-- Position -->
-              <div class="w-7 text-center font-bold text-base tabular-nums ${posClass}">
-                ${entry.position_current}
-              </div>
-
-              <!-- Team colour bar -->
-              <div class="team-bar" style="background-color:${color}"></div>
-
-              <!-- Driver info -->
+          rows += `
+            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none">
+              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${e.position_current}</div>
+              <div class="team-bar" style="background-color:${tc}"></div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-1.5 min-w-0">
-                  <span class="font-semibold text-sm text-white leading-tight truncate">${fullName}</span>
-                  ${acronym ? `<span class="text-slate-500 text-[10px] font-mono shrink-0">${acronym}</span>` : ''}
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-sm text-white truncate">${d.full_name || `#${e.driver_number}`}</span>
+                  ${d.name_acronym ? `<span class="text-slate-500 text-[10px] font-mono shrink-0">${d.name_acronym}</span>` : ''}
                 </div>
-                <div class="text-[11px] text-slate-500 truncate mt-0.5">${driver.team_name || '—'}</div>
+                <div class="text-[11px] text-slate-500 truncate mt-0.5">${d.team_name || '—'}</div>
               </div>
-
-              <!-- Change -->
-              <div class="w-8 text-center">${changeHTML}</div>
-
-              <!-- Points -->
+              <div class="w-8 text-center">${chHtml}</div>
               <div class="w-14 text-right">
-                <span class="font-bold text-lg text-white tabular-nums leading-none">${entry.points_current}</span>
+                <span class="font-bold text-lg text-white tabular-nums">${e.points_current}</span>
                 <span class="text-slate-600 text-[10px] block">pts</span>
               </div>
             </div>`;
         });
 
-        document.getElementById('standings').innerHTML = html;
-
-        const now = new Date();
-        document.getElementById('last-updated').innerHTML =
-          `Oppdatert<br><span class="text-slate-400">${now.toLocaleTimeString('nb-NO')}</span>`;
+        $('content').innerHTML = champCard(rows);
+        const ts = $('ts');
+        if (ts) ts.innerHTML = `Oppdatert<br><span class="text-slate-400">${new Date().toLocaleTimeString('nb-NO')}</span>`;
 
       } catch (err) {
         console.error(err);
-        document.getElementById('standings').innerHTML = `
+        if (token !== t) return;
+        $('content').innerHTML = champCard(`
           <div class="p-12 text-center text-sm">
             <div class="text-red-400 font-semibold mb-1">Kunne ikke hente data</div>
+            <div class="text-slate-500">Sjekk internettforbindelsen</div>
+          </div>`);
+      }
+    }
+
+    /* ── race list ─────────────────────────────────── */
+    async function loadRaceList() {
+      const t = ++token;
+      $('content').innerHTML = `<div class="flex flex-col gap-2">${skeletons(8, 'h-[68px]')}</div>`;
+
+      try {
+        if (!raceList) {
+          const [mRes, sRes] = await Promise.all([
+            fetch('https://api.openf1.org/v1/meetings?year=2026'),
+            fetch('https://api.openf1.org/v1/sessions?year=2026&session_type=Race'),
+          ]);
+          if (token !== t) return;
+          const [meetings, sessions] = await Promise.all([mRes.json(), sRes.json()]);
+          if (token !== t) return;
+
+          const byMeeting = {};
+          sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
+
+          raceList = meetings
+            .filter(m => byMeeting[m.meeting_key])
+            .map(m => ({ meeting: m, session: byMeeting[m.meeting_key] }))
+            .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
+        }
+
+        if (token !== t) return;
+        renderCachedRaceList();
+
+      } catch (err) {
+        console.error(err);
+        if (token !== t) return;
+        $('content').innerHTML = `
+          <div class="p-12 text-center text-sm">
+            <div class="text-red-400 font-semibold mb-1">Kunne ikke hente løp</div>
             <div class="text-slate-500">Sjekk internettforbindelsen</div>
           </div>`;
       }
     }
 
-    fetchStandings();
-    setInterval(fetchStandings, 30_000);
+    function renderCachedRaceList() {
+      if (!raceList?.length) {
+        $('content').innerHTML = '<div class="p-12 text-center text-slate-400 text-sm">Ingen løp tilgjengelig.</div>';
+        return;
+      }
+
+      const now = new Date();
+      let html = '';
+
+      raceList.forEach(({ meeting, session }, i) => {
+        const start  = new Date(session.date_start);
+        const end    = session.date_end ? new Date(session.date_end) : null;
+        const isPast = end && end < now;
+        const isLive = start <= now && !isPast;
+        const isNext = !isPast && !isLive;
+
+        let badge = '';
+        if (isLive) {
+          badge = `<span class="inline-flex items-center gap-1 bg-red-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                     <span class="live-dot w-1.5 h-1.5 bg-white rounded-full"></span>LIVE
+                   </span>`;
+        } else if (isNext) {
+          badge = `<span class="bg-slate-700 text-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">Kommende</span>`;
+        }
+
+        html += `
+          <div class="tappable flex items-center gap-4 px-4 py-3.5 rounded-xl
+                      border border-white/[0.06] bg-slate-900/60 backdrop-blur-sm shadow"
+               onclick="openRaceDetail(${i})">
+            <div class="text-3xl leading-none shrink-0 w-10 text-center">${flag(meeting.country_code)}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-sm text-white leading-snug">
+                  ${meeting.meeting_name || meeting.circuit_short_name}
+                </span>
+                ${badge}
+              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5">
+                Runde ${i + 1} · ${fmtDate(session.date_start)}
+              </div>
+            </div>
+            <svg class="w-4 h-4 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>`;
+      });
+
+      $('content').innerHTML = html;
+    }
+
+    /* ── race detail ───────────────────────────────── */
+    function openRaceDetail(index) {
+      openRace = raceList[index];
+      view = 'race-detail';
+      renderHeader();
+      loadRaceDetail(openRace);
+    }
+
+    async function loadRaceDetail({ meeting, session }) {
+      const t = ++token;
+      $('content').innerHTML = `
+        <div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 shadow-2xl">
+          <div class="p-4 flex flex-col gap-2">${skeletons(20)}</div>
+        </div>`;
+
+      const now   = new Date();
+      const start = new Date(session.date_start);
+
+      if (start > now) {
+        $('content').innerHTML = `
+          <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-14 text-center shadow-2xl">
+            <div class="text-5xl mb-4">🏎️</div>
+            <div class="font-semibold text-white mb-1">Løpet er ikke startet ennå</div>
+            <div class="text-sm text-slate-400">${fmtDate(session.date_start)}</div>
+          </div>`;
+        return;
+      }
+
+      try {
+        const cKey = session.session_key;
+        let cached = raceResultsCache[cKey];
+
+        if (!cached) {
+          // Build position URL — fetch last 5 min for completed, last 10 min for live
+          const end    = session.date_end ? new Date(session.date_end) : now;
+          const window = session.date_end ? 5 : 10;
+          const from   = new Date(end.getTime() - window * 60 * 1000).toISOString().slice(0, 19);
+          const posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}&date>=${from}`;
+
+          const [dRes, pRes] = await Promise.all([
+            fetch(`https://api.openf1.org/v1/drivers?session_key=${cKey}`),
+            fetch(posUrl),
+          ]);
+          if (token !== t) return;
+          const [driversArr, posArr] = await Promise.all([dRes.json(), pRes.json()]);
+          if (token !== t) return;
+
+          const driverMap = {};
+          driversArr.forEach(d => { driverMap[d.driver_number] = d; });
+
+          // Last recorded position per driver
+          const lastPos = {};
+          posArr.forEach(p => {
+            if (!lastPos[p.driver_number] || p.date > lastPos[p.driver_number].date) {
+              lastPos[p.driver_number] = p;
+            }
+          });
+
+          const positions = Object.values(lastPos).sort((a, b) => a.position - b.position);
+          cached = { driverMap, positions };
+
+          // Only persist cache for completed races
+          if (session.date_end && new Date(session.date_end) < now) {
+            raceResultsCache[cKey] = cached;
+          }
+        }
+
+        if (token !== t) return;
+
+        const { driverMap, positions } = cached;
+        const isLive = !session.date_end || new Date(session.date_end) >= now;
+
+        if (!positions.length) {
+          $('content').innerHTML = `
+            <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center">
+              <div class="text-slate-400 text-sm">Ingen resultatdata tilgjengelig ennå.</div>
+            </div>`;
+          return;
+        }
+
+        let html = '';
+        if (isLive) {
+          html += `
+            <div class="flex items-center gap-2 mb-3 px-1">
+              <span class="inline-flex items-center gap-1 bg-red-600/90 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">
+                <span class="live-dot w-1.5 h-1.5 bg-white rounded-full"></span>LIVE
+              </span>
+              <span class="text-slate-400 text-xs">Oppdateres hvert 30. sek</span>
+            </div>`;
+        }
+
+        html += `<div class="rounded-2xl overflow-hidden border border-white/[0.07] bg-slate-900/60 backdrop-blur-sm shadow-2xl">
+          <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-3
+                      text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
+            <div class="w-7 text-center">Pos</div>
+            <div class="w-px mx-1"></div>
+            <div class="flex-1">Fører</div>
+          </div>`;
+
+        positions.forEach(pos => {
+          const d  = driverMap[pos.driver_number] || {};
+          const cl = MEDAL[pos.position] || 'text-white';
+          const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
+
+          html += `
+            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none">
+              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${pos.position}</div>
+              <div class="team-bar" style="background-color:${tc}"></div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-1.5">
+                  <span class="font-semibold text-sm text-white truncate">${d.full_name || `#${pos.driver_number}`}</span>
+                  ${d.name_acronym ? `<span class="text-slate-500 text-[10px] font-mono shrink-0">${d.name_acronym}</span>` : ''}
+                </div>
+                <div class="text-[11px] text-slate-500 truncate mt-0.5">${d.team_name || '—'}</div>
+              </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+        $('content').innerHTML = html;
+
+        // Re-fetch if live
+        if (isLive) {
+          setTimeout(() => {
+            if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
+              loadRaceDetail({ meeting, session });
+            }
+          }, 30_000);
+        }
+
+      } catch (err) {
+        console.error(err);
+        if (token !== t) return;
+        $('content').innerHTML = `
+          <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center text-sm shadow-2xl">
+            <div class="text-red-400 font-semibold mb-1">Kunne ikke hente resultater</div>
+            <div class="text-slate-500">Sjekk internettforbindelsen</div>
+          </div>`;
+      }
+    }
+
+    /* ── init ──────────────────────────────────────── */
+    renderHeader();
+    loadChampionship();
+
+    setInterval(() => {
+      if (view === 'championship') loadChampionship(true);
+    }, 30_000);
   </script>
 </body>
 </html>
