@@ -349,13 +349,20 @@
         let cached = raceResultsCache[cKey];
 
         if (!cached) {
-          const isLiveRace = start <= now && (!session.date_end || new Date(session.date_end) >= now);
+          // A race is live only if it started recently (within 4 hours) AND hasn't
+          // finished. date_end is null for most historical sessions in OpenF1, so
+          // we can't use !date_end as a "live" signal — that would wrongly treat
+          // every old race as live and apply a "now - 15min" filter to it.
+          const isLiveRace = session.date_end
+            ? new Date(session.date_end) > now
+            : (now - start) < 4 * 60 * 60 * 1000;
 
-          // For past races we can't reliably estimate when the race ended, so we
-          // fetch all position data for the session (cached after first load).
-          // For live races we only fetch the last 15 min to keep it fast.
+          // Build position URL:
+          //  - Completed race with date_end  → last 5 min of session (small payload)
+          //  - Live race                     → last 15 min (rolling window)
+          //  - Completed race, no date_end   → no filter; fetch full session & cache
           let posUrl = `https://api.openf1.org/v1/position?session_key=${cKey}`;
-          if (session.date_end) {
+          if (!isLiveRace && session.date_end) {
             const end  = new Date(session.date_end);
             const from = new Date(end.getTime() - 5 * 60 * 1000).toISOString().slice(0, 19);
             posUrl += `&date>=${from}`;
