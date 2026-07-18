@@ -34,11 +34,14 @@ export default {
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.delete('Content-Security-Policy');
 
-    // Cache kun vellykkede svar. "latest"-spørringer endrer seg i løpet av en
-    // løpshelg, så de får kort TTL; historiske løpsresultater er uforanderlige
-    // og caches i en time.
-    if (upstream.ok) {
-      const ttl = url.search.includes('latest') ? 30 : 3600;
+    // Cache vellykkede svar OG 404 (avlyste løp / manglende resultater), slik
+    // at gjentatte kall ikke treffer OpenF1 på nytt. "latest"-spørringer endrer
+    // seg i løpet av en løpshelg → kort TTL; historiske resultater er
+    // uforanderlige → en time; 404 caches kort i tilfelle data kommer senere.
+    if (upstream.ok || upstream.status === 404) {
+      const ttl = upstream.status === 404 ? 300
+                : url.search.includes('latest') ? 30
+                : 3600;
       response.headers.set('Cache-Control', `public, max-age=${ttl}, s-maxage=${ttl}`);
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     }

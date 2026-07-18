@@ -62,11 +62,11 @@
 
     async function apiFetch(url, attempt = 0) {
       const res = await fetch(url);
-      if (res.status === 429 && attempt < 4) {
+      if (res.status === 429 && attempt < 2) {
         await new Promise(r => setTimeout(r, (attempt + 1) * 1500));
         return apiFetch(url, attempt + 1);
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) { const e = new Error(`HTTP ${res.status}`); e.status = res.status; throw e; }
       return res.json();
     }
 
@@ -93,13 +93,44 @@
       return driversLatest;
     }
 
-    // Fetch a race's final classification, cached. Empty/failed responses are
-    // never cached, so a pending race keeps retrying until results appear.
-    async function getSessionResult(cKey) {
+    // localStorage persistence — historical race results never change, so once
+    // fetched they can be reused across visits with zero network requests.
+    const LS_PREFIX = 'f1sr:';
+    function lsGet(cKey) {
+      try { const v = localStorage.getItem(LS_PREFIX + cKey); return v ? JSON.parse(v) : null; }
+      catch { return null; }
+    }
+    function lsSet(cKey, arr) {
+      try { localStorage.setItem(LS_PREFIX + cKey, JSON.stringify(arr)); } catch {}
+    }
+    function hasCachedResult(cKey) {
+      return !!sessionResultCache[cKey] || lsGet(cKey) !== null;
+    }
+
+    // Fetch a race's final classification.
+    //  - Results are cached in memory + localStorage once "final".
+    //  - A 404 (cancelled / no results) counts as an empty final result.
+    //  - For a race that isn't final yet, an empty result is NOT cached so it
+    //    keeps being retried until results are published.
+    async function getSessionResult(cKey, isFinal) {
       if (sessionResultCache[cKey]) return sessionResultCache[cKey];
-      const res = await apiFetch(`${API}/v1/session_result?session_key=${cKey}`).catch(() => []);
-      const arr = Array.isArray(res) ? res : [];
-      if (arr.length) sessionResultCache[cKey] = arr;
+      const stored = lsGet(cKey);
+      if (stored) { sessionResultCache[cKey] = stored; return stored; }
+
+      let arr = [];
+      try {
+        const res = await apiFetch(`${API}/v1/session_result?session_key=${cKey}`);
+        arr = Array.isArray(res) ? res : [];
+      } catch (err) {
+        // 404 => definitively no results. Any other error (e.g. 429) => leave
+        // uncached so a later load can retry once the API recovers.
+        if (err.status !== 404) return [];
+      }
+
+      if (arr.length || isFinal) {
+        sessionResultCache[cKey] = arr;
+        lsSet(cKey, arr);
+      }
       return arr;
     }
 
@@ -265,16 +296,18 @@
         driversArr.forEach(d => { dm[d.driver_number] = d; });
 
         const now = Date.now();
+        const SIX_H = 6 * 60 * 60 * 1000;
         const done = raceList.filter(r => new Date(r.session.date_start).getTime() < now);
 
         const allResults = [];
         for (const r of done) {
           if (token !== t) return;
           const cKey = r.session.session_key;
-          const wasCached = !!sessionResultCache[cKey];
-          allResults.push(await getSessionResult(cKey));
+          const started = new Date(r.session.date_start).getTime();
+          const wasCached = hasCachedResult(cKey);
+          allResults.push(await getSessionResult(cKey, now - started > SIX_H));
           if (token !== t) return;
-          if (!wasCached) await sleep(250); // throttle cold-path calls to stay under the rate limit
+          if (!wasCached) await sleep(500); // throttle cold-path calls to stay under the rate limit
         }
         if (token !== t) return;
 
@@ -455,10 +488,11 @@
 
       try {
         const cKey = session.session_key;
+        const isFinal = (now - start) > 6 * 60 * 60 * 1000;
 
         const [driversArr, rawPositions] = await Promise.all([
           getDriversLatest(),
-          getSessionResult(cKey),
+          getSessionResult(cKey, isFinal),
         ]);
         if (token !== t) return;
 
@@ -477,11 +511,15 @@
             <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center">
               <div class="text-slate-400 text-sm">Ingen resultater tilgjengelig — løpet kan ha blitt kansellert eller utsatt.</div>
             </div>`;
-          setTimeout(() => {
-            if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
-              loadRaceDetail({ meeting, session });
-            }
-          }, 60_000);
+          // Only keep polling for a recent race whose results may still be
+          // published; a final race with no results is cancelled — don't retry.
+          if (!isFinal) {
+            setTimeout(() => {
+              if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
+                loadRaceDetail({ meeting, session });
+              }
+            }, 60_000);
+          }
           return;
         }
 
