@@ -228,29 +228,56 @@
               </p>`;
     }
 
+    const F1_PTS = [0, 25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+
     async function loadChampionship(silent = false) {
       const t = ++token;
       if (!silent) $('content').innerHTML = champCard(`<div class="p-4 flex flex-col gap-2">${skeletons(10)}</div>`);
 
       try {
-        const [champ, driversArr] = await Promise.all([
-          apiFetch(`${API}/v1/championship_drivers?year=2026`),
-          apiFetch(`${API}/v1/drivers?session_key=latest`),
-        ]);
+        await ensureRaceList();
+        if (token !== t) return;
+
+        const driversArr = await apiFetch(`${API}/v1/drivers?session_key=latest`);
         if (token !== t) return;
 
         const dm = {};
         driversArr.forEach(d => { dm[d.driver_number] = d; });
 
-        if (!champ?.length) {
-          $('content').innerHTML = champCard('<div class="p-12 text-center text-slate-400 text-sm">Ingen data tilgjengelig.</div>');
+        const now = new Date();
+        const done = raceList.filter(r => new Date(r.session.date_start) < now);
+
+        const allResults = await Promise.all(
+          done.map(r => {
+            const cKey = r.session.session_key;
+            if (raceResultsCache[cKey]) return Promise.resolve(raceResultsCache[cKey].positions);
+            return apiFetch(`${API}/v1/session_result?session_key=${cKey}`)
+              .catch(() => [])
+              .then(res => Array.isArray(res) ? res : []);
+          })
+        );
+        if (token !== t) return;
+
+        const totals = {};
+        allResults.forEach(results => {
+          results.forEach(e => {
+            if (!totals[e.driver_number]) totals[e.driver_number] = { driver_number: e.driver_number, points: 0, wins: 0 };
+            const pts = (!e.dnf && !e.dns && !e.dsq && e.position >= 1 && e.position <= 10)
+              ? (F1_PTS[e.position] || 0) : 0;
+            totals[e.driver_number].points += pts;
+            if (e.position === 1) totals[e.driver_number].wins++;
+          });
+        });
+
+        const sorted = Object.values(totals).sort((a, b) => b.points - a.points || b.wins - a.wins);
+
+        if (!sorted.length) {
+          $('content').innerHTML = champCard('<div class="p-12 text-center text-slate-400 text-sm">Ingen data tilgjengelig ennå.</div>');
           return;
         }
 
-        champ.sort((a, b) => a.position_current - b.position_current);
-
-        // Populate driver cache
-        champ.forEach(e => {
+        sorted.forEach((e, i) => {
+          e.pos = i + 1;
           driverCache[e.driver_number] = { info: dm[e.driver_number] || {}, champEntry: e };
         });
 
@@ -260,25 +287,17 @@
             <div class="w-7 text-center">Pos</div>
             <div class="w-px mx-1"></div>
             <div class="flex-1">Fører</div>
-            <div class="w-8 text-center text-[9px]">±</div>
             <div class="w-14 text-right">Pts</div>
           </div>`;
 
-        champ.forEach(e => {
+        sorted.forEach(e => {
           const d  = dm[e.driver_number] || {};
-          const ch = e.position_current - e.position_start;
-          const cl = MEDAL[e.position_current] || 'text-white';
+          const cl = MEDAL[e.pos] || 'text-white';
           const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
-          const chHtml = ch < 0
-            ? `<span class="text-emerald-400 text-[11px] font-semibold">▲${Math.abs(ch)}</span>`
-            : ch > 0
-              ? `<span class="text-red-400 text-[11px] font-semibold">▼${ch}</span>`
-              : `<span class="text-slate-700">—</span>`;
-
           rows += `
             <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none"
                  onclick="openDriverDetail(${e.driver_number})">
-              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${e.position_current}</div>
+              <div class="w-7 text-center font-bold text-base tabular-nums ${cl}">${e.pos}</div>
               <div class="team-bar" style="background-color:${tc}"></div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline gap-1.5">
@@ -287,9 +306,8 @@
                 </div>
                 <div class="text-[11px] text-slate-500 truncate mt-0.5">${d.team_name || '—'}</div>
               </div>
-              <div class="w-8 text-center">${chHtml}</div>
               <div class="w-14 text-right">
-                <span class="font-bold text-lg text-white tabular-nums">${e.points_current}</span>
+                <span class="font-bold text-lg text-white tabular-nums">${e.points}</span>
                 <span class="text-slate-600 text-[10px] block">pts</span>
               </div>
             </div>`;
