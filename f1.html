@@ -57,16 +57,8 @@
   </nav>
 
   <script>
-    /* ── CORS proxy (required when served from GitHub Pages) ── */
-    ;(function () {
-      const orig = self.fetch.bind(self);
-      self.fetch = (url, opts) => {
-        if (typeof url === 'string' && url.startsWith('https://api.openf1.org')) {
-          url = 'https://corsproxy.io/?' + encodeURIComponent(url);
-        }
-        return orig(url, opts);
-      };
-    })();
+    /* ── API base — bytt til din Cloudflare Worker URL ── */
+    const API = 'https://rough-dust-2a76.batil-kjekken.workers.dev';
 
     /* ── state ─────────────────────────────────────── */
     let view      = 'championship'; // championship | races | race-detail | driver-detail
@@ -232,8 +224,8 @@
 
       try {
         const [cR, dR] = await Promise.all([
-          fetch('https://api.openf1.org/v1/championship_drivers?session_key=latest'),
-          fetch('https://api.openf1.org/v1/drivers?session_key=latest'),
+          fetch(`${API}/v1/championship_drivers?session_key=latest`),
+          fetch(`${API}/v1/drivers?session_key=latest`),
         ]);
         if (token !== t) return;
         const [champ, driversArr] = await Promise.all([cR.json(), dR.json()]);
@@ -314,8 +306,8 @@
     async function ensureRaceList() {
       if (raceList) return;
       const [mRes, sRes] = await Promise.all([
-        fetch('https://api.openf1.org/v1/meetings?year=2026'),
-        fetch('https://api.openf1.org/v1/sessions?year=2026&session_type=Race'),
+        fetch(`${API}/v1/meetings?year=2026`),
+        fetch(`${API}/v1/sessions?year=2026&session_type=Race`),
       ]);
       const [meetings, sessions] = await Promise.all([mRes.json(), sRes.json()]);
       const byMeeting = {};
@@ -421,8 +413,8 @@
 
         if (!cached) {
           const [dRes, rRes] = await Promise.all([
-            fetch(`https://api.openf1.org/v1/drivers?session_key=${cKey}`),
-            fetch(`https://api.openf1.org/v1/session_result?session_key=${cKey}`),
+            fetch(`${API}/v1/drivers?session_key=${cKey}`),
+            fetch(`${API}/v1/session_result?session_key=${cKey}`),
           ]);
           if (token !== t) return;
           const [driversArr, rawResults] = await Promise.all([dRes.json(), rRes.json()]);
@@ -515,7 +507,7 @@
         await ensureRaceList();
         if (token !== t) return;
 
-        const res = await fetch(`https://api.openf1.org/v1/session_result?driver_number=${driverNum}`);
+        const res = await fetch(`${API}/v1/session_result?driver_number=${driverNum}`);
         if (token !== t) return;
         const allResults = await res.json();
         if (token !== t) return;
