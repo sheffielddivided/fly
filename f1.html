@@ -247,15 +247,18 @@
         const now = new Date();
         const done = raceList.filter(r => new Date(r.session.date_start) < now);
 
-        const allResults = await Promise.all(
-          done.map(r => {
-            const cKey = r.session.session_key;
-            if (raceResultsCache[cKey]) return Promise.resolve(raceResultsCache[cKey].positions);
-            return apiFetch(`${API}/v1/session_result?session_key=${cKey}`)
-              .catch(() => [])
-              .then(res => Array.isArray(res) ? res : []);
-          })
-        );
+        const allResults = [];
+        for (const r of done) {
+          if (token !== t) return;
+          const cKey = r.session.session_key;
+          if (raceResultsCache[cKey]) {
+            allResults.push(raceResultsCache[cKey].positions);
+          } else {
+            const res = await apiFetch(`${API}/v1/session_result?session_key=${cKey}`)
+              .catch(() => []);
+            allResults.push(Array.isArray(res) ? res : []);
+          }
+        }
         if (token !== t) return;
 
         const totals = {};
