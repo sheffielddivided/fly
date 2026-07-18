@@ -80,8 +80,28 @@
     let savedPrevView = null; // { view, openRace }
     let token = 0;
 
-    const raceResultsCache = {};
     const driverCache = {}; // driver_number → { info, champEntry }
+    const sessionResultCache = {}; // session_key → final positions[]
+    let driversLatest = null;
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function getDriversLatest() {
+      if (driversLatest) return driversLatest;
+      const arr = await apiFetch(`${API}/v1/drivers?session_key=latest`);
+      driversLatest = Array.isArray(arr) ? arr : [];
+      return driversLatest;
+    }
+
+    // Fetch a race's final classification, cached. Empty/failed responses are
+    // never cached, so a pending race keeps retrying until results appear.
+    async function getSessionResult(cKey) {
+      if (sessionResultCache[cKey]) return sessionResultCache[cKey];
+      const res = await apiFetch(`${API}/v1/session_result?session_key=${cKey}`).catch(() => []);
+      const arr = Array.isArray(res) ? res : [];
+      if (arr.length) sessionResultCache[cKey] = arr;
+      return arr;
+    }
 
     /* ── helpers ───────────────────────────────────── */
     const $ = id => document.getElementById(id);
@@ -238,26 +258,23 @@
         await ensureRaceList();
         if (token !== t) return;
 
-        const driversArr = await apiFetch(`${API}/v1/drivers?session_key=latest`);
+        const driversArr = await getDriversLatest();
         if (token !== t) return;
 
         const dm = {};
         driversArr.forEach(d => { dm[d.driver_number] = d; });
 
-        const now = new Date();
-        const done = raceList.filter(r => new Date(r.session.date_start) < now);
+        const now = Date.now();
+        const done = raceList.filter(r => new Date(r.session.date_start).getTime() < now);
 
         const allResults = [];
         for (const r of done) {
           if (token !== t) return;
           const cKey = r.session.session_key;
-          if (raceResultsCache[cKey]) {
-            allResults.push(raceResultsCache[cKey].positions);
-          } else {
-            const res = await apiFetch(`${API}/v1/session_result?session_key=${cKey}`)
-              .catch(() => []);
-            allResults.push(Array.isArray(res) ? res : []);
-          }
+          const wasCached = !!sessionResultCache[cKey];
+          allResults.push(await getSessionResult(cKey));
+          if (token !== t) return;
+          if (!wasCached) await sleep(250); // throttle cold-path calls to stay under the rate limit
         }
         if (token !== t) return;
 
@@ -438,33 +455,22 @@
 
       try {
         const cKey = session.session_key;
-        let cached = raceResultsCache[cKey];
 
-        if (!cached) {
-          const [driversArr, rawResults] = await Promise.all([
-            apiFetch(`${API}/v1/drivers?session_key=${cKey}`),
-            apiFetch(`${API}/v1/session_result?session_key=${cKey}`).catch(() => []),
-          ]);
-          if (token !== t) return;
-
-          if (!Array.isArray(driversArr)) throw new Error('Uventet API-svar');
-          const results = Array.isArray(rawResults) ? rawResults : [];
-
-          const driverMap = {};
-          driversArr.forEach(d => {
-            driverMap[d.driver_number] = d;
-            // Populate driver cache without overwriting an existing champEntry
-            if (!driverCache[d.driver_number]) driverCache[d.driver_number] = { info: d, champEntry: null };
-            else driverCache[d.driver_number].info = d;
-          });
-
-          const positions = [...results].sort((a, b) => (a.position || 999) - (b.position || 999));
-          cached = { driverMap, positions };
-          if (positions.length > 0) raceResultsCache[cKey] = cached;
-        }
-
+        const [driversArr, rawPositions] = await Promise.all([
+          getDriversLatest(),
+          getSessionResult(cKey),
+        ]);
         if (token !== t) return;
-        const { driverMap, positions } = cached;
+
+        const driverMap = {};
+        driversArr.forEach(d => {
+          driverMap[d.driver_number] = d;
+          // Populate driver cache without overwriting an existing champEntry
+          if (!driverCache[d.driver_number]) driverCache[d.driver_number] = { info: d, champEntry: null };
+          else driverCache[d.driver_number].info = d;
+        });
+
+        const positions = [...rawPositions].sort((a, b) => (a.position || 999) - (b.position || 999));
 
         if (!positions.length) {
           $('content').innerHTML = `
@@ -473,7 +479,6 @@
             </div>`;
           setTimeout(() => {
             if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
-              delete raceResultsCache[cKey];
               loadRaceDetail({ meeting, session });
             }
           }, 60_000);
@@ -571,14 +576,18 @@
                 : ''}
             </div>
             ${champ ? `
-            <div class="px-5 pb-5 grid grid-cols-2 gap-3">
+            <div class="px-5 pb-5 grid grid-cols-3 gap-3">
               <div class="bg-black/30 rounded-xl p-3 text-center border border-white/[0.05]">
-                <div class="text-3xl font-black text-white tabular-nums">${champ.position_current}</div>
+                <div class="text-3xl font-black text-white tabular-nums">${champ.pos}</div>
                 <div class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Stilling</div>
               </div>
               <div class="bg-black/30 rounded-xl p-3 text-center border border-white/[0.05]">
-                <div class="text-3xl font-black text-white tabular-nums">${champ.points_current}</div>
+                <div class="text-3xl font-black text-white tabular-nums">${champ.points}</div>
                 <div class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Poeng</div>
+              </div>
+              <div class="bg-black/30 rounded-xl p-3 text-center border border-white/[0.05]">
+                <div class="text-3xl font-black text-white tabular-nums">${champ.wins}</div>
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Seiere</div>
               </div>
             </div>` : ''}
           </div>`;
@@ -628,9 +637,17 @@
     renderHeader();
     loadChampionship();
 
+    // Only auto-refresh when a race is live or just finished — otherwise the
+    // standings are static and there's nothing new to fetch.
     setInterval(() => {
-      if (view === 'championship') loadChampionship(true);
-    }, 30_000);
+      if (view !== 'championship' || !raceList) return;
+      const now = Date.now();
+      const active = raceList.some(r => {
+        const s = new Date(r.session.date_start).getTime();
+        return now - s > -60 * 60 * 1000 && now - s < 4 * 60 * 60 * 1000;
+      });
+      if (active) loadChampionship(true);
+    }, 60_000);
   </script>
 </body>
 </html>
