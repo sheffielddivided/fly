@@ -234,7 +234,7 @@
 
       try {
         const [champ, driversArr] = await Promise.all([
-          apiFetch(`${API}/v1/championship_drivers?session_key=latest`),
+          apiFetch(`${API}/v1/championship_drivers?year=2026`),
           apiFetch(`${API}/v1/drivers?session_key=latest`),
         ]);
         if (token !== t) return;
@@ -304,8 +304,9 @@
         if (token !== t) return;
         $('content').innerHTML = champCard(`
           <div class="p-12 text-center text-sm">
-            <div class="text-red-400 font-semibold mb-1">Kunne ikke hente data</div>
-            <div class="text-slate-500">Sjekk internettforbindelsen</div>
+            <div class="text-red-400 font-semibold mb-2">Kunne ikke hente data</div>
+            <div class="text-slate-500 mb-4">API-en er kanskje midlertidig utilgjengelig</div>
+            <button onclick="loadChampionship()" class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors">Prøv igjen</button>
           </div>`);
       }
     }
@@ -497,8 +498,9 @@
         if (token !== t) return;
         $('content').innerHTML = `
           <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center text-sm shadow-2xl">
-            <div class="text-red-400 font-semibold mb-1">Kunne ikke hente resultater</div>
-            <div class="text-slate-500">Sjekk internettforbindelsen</div>
+            <div class="text-red-400 font-semibold mb-2">Kunne ikke hente resultater</div>
+            <div class="text-slate-500 mb-4">API-en er kanskje midlertidig utilgjengelig</div>
+            <button onclick="loadRaceDetail(openRace)" class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors">Prøv igjen</button>
           </div>`;
       }
     }
