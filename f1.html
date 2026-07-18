@@ -60,6 +60,16 @@
     /* ── API base — bytt til din Cloudflare Worker URL ── */
     const API = 'https://rough-dust-2a76.batil-kjekken.workers.dev';
 
+    async function apiFetch(url, attempt = 0) {
+      const res = await fetch(url);
+      if (res.status === 429 && attempt < 4) {
+        await new Promise(r => setTimeout(r, (attempt + 1) * 1500));
+        return apiFetch(url, attempt + 1);
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
     /* ── state ─────────────────────────────────────── */
     let view      = 'championship'; // championship | races | race-detail | driver-detail
     let activeTab = 'championship';
@@ -223,12 +233,10 @@
       if (!silent) $('content').innerHTML = champCard(`<div class="p-4 flex flex-col gap-2">${skeletons(10)}</div>`);
 
       try {
-        const [cR, dR] = await Promise.all([
-          fetch(`${API}/v1/championship_drivers?session_key=latest`),
-          fetch(`${API}/v1/drivers?session_key=latest`),
+        const [champ, driversArr] = await Promise.all([
+          apiFetch(`${API}/v1/championship_drivers?session_key=latest`),
+          apiFetch(`${API}/v1/drivers?session_key=latest`),
         ]);
-        if (token !== t) return;
-        const [champ, driversArr] = await Promise.all([cR.json(), dR.json()]);
         if (token !== t) return;
 
         const dm = {};
@@ -305,11 +313,10 @@
     /* ── race list ─────────────────────────────────── */
     async function ensureRaceList() {
       if (raceList) return;
-      const [mRes, sRes] = await Promise.all([
-        fetch(`${API}/v1/meetings?year=2026`),
-        fetch(`${API}/v1/sessions?year=2026&session_type=Race`),
+      const [meetings, sessions] = await Promise.all([
+        apiFetch(`${API}/v1/meetings?year=2026`),
+        apiFetch(`${API}/v1/sessions?year=2026&session_type=Race`),
       ]);
-      const [meetings, sessions] = await Promise.all([mRes.json(), sRes.json()]);
       const byMeeting = {};
       sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
       raceList = meetings
@@ -412,12 +419,10 @@
         let cached = raceResultsCache[cKey];
 
         if (!cached) {
-          const [dRes, rRes] = await Promise.all([
-            fetch(`${API}/v1/drivers?session_key=${cKey}`),
-            fetch(`${API}/v1/session_result?session_key=${cKey}`),
+          const [driversArr, rawResults] = await Promise.all([
+            apiFetch(`${API}/v1/drivers?session_key=${cKey}`),
+            apiFetch(`${API}/v1/session_result?session_key=${cKey}`).catch(() => []),
           ]);
-          if (token !== t) return;
-          const [driversArr, rawResults] = await Promise.all([dRes.json(), rRes.json()]);
           if (token !== t) return;
 
           if (!Array.isArray(driversArr)) throw new Error('Uventet API-svar');
@@ -507,9 +512,7 @@
         await ensureRaceList();
         if (token !== t) return;
 
-        const res = await fetch(`${API}/v1/session_result?driver_number=${driverNum}`);
-        if (token !== t) return;
-        const allResults = await res.json();
+        const allResults = await apiFetch(`${API}/v1/session_result?driver_number=${driverNum}`);
         if (token !== t) return;
 
         if (!Array.isArray(allResults)) throw new Error('Uventet API-svar');
