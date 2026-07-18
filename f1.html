@@ -57,6 +57,17 @@
   </nav>
 
   <script>
+    /* ── CORS proxy (required when served from GitHub Pages) ── */
+    ;(function () {
+      const orig = self.fetch.bind(self);
+      self.fetch = (url, opts) => {
+        if (typeof url === 'string' && url.startsWith('https://api.openf1.org')) {
+          url = 'https://corsproxy.io/?' + encodeURIComponent(url);
+        }
+        return orig(url, opts);
+      };
+    })();
+
     /* ── state ─────────────────────────────────────── */
     let view      = 'championship'; // championship | races | race-detail | driver-detail
     let activeTab = 'championship';
