@@ -62,7 +62,8 @@
 
     async function apiFetch(url, attempt = 0) {
       const res = await fetch(url);
-      if (res.status === 429 && attempt < 2) {
+      // OpenF1's rate limiter can answer with 401 or 429 — both are transient, so retry.
+      if ((res.status === 429 || res.status === 401) && attempt < 2) {
         await new Promise(r => setTimeout(r, (attempt + 1) * 1500));
         return apiFetch(url, attempt + 1);
       }
@@ -383,18 +384,32 @@
     }
 
     /* ── race list ─────────────────────────────────── */
+    // The 2026 calendar barely changes, so it's cached in localStorage. If the
+    // API is temporarily unavailable (401/429/network) we fall back to the
+    // cached calendar instead of breaking the whole page.
+    const LS_CALENDAR = 'f1cal:2026';
+
     async function ensureRaceList() {
       if (raceList) return;
-      const [meetings, sessions] = await Promise.all([
-        apiFetch(`${API}/v1/meetings?year=2026`),
-        apiFetch(`${API}/v1/sessions?year=2026&session_type=Race`),
-      ]);
-      const byMeeting = {};
-      sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
-      raceList = meetings
-        .filter(m => byMeeting[m.meeting_key])
-        .map(m => ({ meeting: m, session: byMeeting[m.meeting_key] }))
-        .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
+      try {
+        const [meetings, sessions] = await Promise.all([
+          apiFetch(`${API}/v1/meetings?year=2026`),
+          apiFetch(`${API}/v1/sessions?year=2026&session_type=Race`),
+        ]);
+        const byMeeting = {};
+        sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
+        raceList = meetings
+          .filter(m => byMeeting[m.meeting_key])
+          .map(m => ({ meeting: m, session: byMeeting[m.meeting_key] }))
+          .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
+        try { localStorage.setItem(LS_CALENDAR, JSON.stringify(raceList)); } catch {}
+      } catch (err) {
+        try {
+          const cached = localStorage.getItem(LS_CALENDAR);
+          if (cached) { raceList = JSON.parse(cached); return; }
+        } catch {}
+        throw err;
+      }
     }
 
     async function loadRaceList() {
