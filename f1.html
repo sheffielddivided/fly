@@ -62,8 +62,10 @@
 
     async function apiFetch(url, attempt = 0) {
       const res = await fetch(url);
-      // OpenF1's rate limiter can answer with 401 or 429 — both are transient, so retry.
-      if ((res.status === 429 || res.status === 401) && attempt < 2) {
+      // Only 429 is worth retrying. A 401 means OpenF1 has restricted anonymous
+      // access because a live session is in progress — that lasts for hours, so
+      // retrying is pointless; we fall back to cached data instead.
+      if (res.status === 429 && attempt < 2) {
         await new Promise(r => setTimeout(r, (attempt + 1) * 1500));
         return apiFetch(url, attempt + 1);
       }
@@ -89,8 +91,18 @@
 
     async function getDriversLatest() {
       if (driversLatest) return driversLatest;
-      const arr = await apiFetch(`${API}/v1/drivers?session_key=latest`);
-      driversLatest = Array.isArray(arr) ? arr : [];
+      try {
+        const arr = await apiFetch(`${API}/v1/drivers?session_key=latest`);
+        driversLatest = Array.isArray(arr) ? arr : [];
+        try { localStorage.setItem('f1drivers', JSON.stringify(driversLatest)); } catch {}
+      } catch (err) {
+        // During a live session the API 401s — fall back to the last known list.
+        try {
+          const c = localStorage.getItem('f1drivers');
+          driversLatest = c ? JSON.parse(c) : [];
+        } catch { driversLatest = []; }
+        if (!driversLatest.length) throw err;
+      }
       return driversLatest;
     }
 
@@ -374,10 +386,13 @@
       } catch (err) {
         console.error(err);
         if (token !== t) return;
+        const live = err.status === 401;
         $('content').innerHTML = champCard(`
           <div class="p-12 text-center text-sm">
-            <div class="text-red-400 font-semibold mb-2">Kunne ikke hente data</div>
-            <div class="text-slate-500 mb-4">API-en er kanskje midlertidig utilgjengelig</div>
+            <div class="text-red-400 font-semibold mb-2">${live ? 'Live-økt pågår' : 'Kunne ikke hente data'}</div>
+            <div class="text-slate-500 mb-4">${live
+              ? 'OpenF1 begrenser tilgang til data mens et løp pågår. Prøv igjen når økten er ferdig.'
+              : 'API-en er kanskje midlertidig utilgjengelig'}</div>
             <button onclick="loadChampionship()" class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors">Prøv igjen</button>
           </div>`);
       }
