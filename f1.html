@@ -79,8 +79,7 @@
     let raceList  = null;
     let openRace  = null;
     let openDriverNum = null;
-    let savedContent  = '';
-    let savedPrevView = null; // { view, openRace }
+    let navStack  = []; // [{ view, openRace, openDriverNum, content }] for back navigation
     let token = 0;
 
     const driverCache = {}; // driver_number → { info, champEntry }
@@ -212,7 +211,7 @@
         const tc = d.team_colour ? `#${d.team_colour}` : '#475569';
         $('hdr').innerHTML = `
           <div class="flex items-center gap-3">
-            ${backBtn('backFromDriver()')}
+            ${backBtn('goBack()')}
             <div class="w-1 h-6 rounded-full shrink-0" style="background-color:${tc}"></div>
             <div class="min-w-0">
               <div class="text-base font-bold text-white leading-tight truncate">${d.full_name || `Fører #${openDriverNum}`}</div>
@@ -222,7 +221,7 @@
       } else if (view === 'race-detail' && openRace) {
         $('hdr').innerHTML = `
           <div class="flex items-center gap-3">
-            ${backBtn('backToRaces()')}
+            ${backBtn('goBack()')}
             <div>
               <div class="text-base font-bold text-white leading-tight">
                 ${flag(openRace.meeting.country_code)}
@@ -251,6 +250,9 @@
     /* ── tabs ──────────────────────────────────────── */
     function showTab(tab) {
       activeTab = tab;
+      navStack = []; // top-level navigation resets the back stack
+      openRace = null;
+      openDriverNum = null;
       $('nt-champ').className = `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${tab==='championship' ? 'text-white' : 'text-slate-500'}`;
       $('nt-races').className  = `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${tab==='races' ? 'text-white' : 'text-slate-500'}`;
       view = tab;
@@ -259,29 +261,31 @@
       else                        loadRaceList();
     }
 
-    function backToRaces() {
-      openRace = null;
-      view = 'races';
+    /* ── navigation stack ──────────────────────────── */
+    // Push the current page before navigating into a detail view, so "back"
+    // can restore it instantly (content + header) across multiple levels,
+    // e.g. mesterskap → fører → løp → tilbake → fører → tilbake → mesterskap.
+    function pushHistory() {
+      navStack.push({ view, openRace, openDriverNum, content: $('content').innerHTML });
+    }
+
+    function goBack() {
+      const prev = navStack.pop();
+      if (!prev) { showTab(activeTab); return; }
+      view = prev.view;
+      openRace = prev.openRace;
+      openDriverNum = prev.openDriverNum;
       renderHeader();
-      renderCachedRaceList();
+      $('content').innerHTML = prev.content;
     }
 
     /* ── driver detail navigation ──────────────────── */
     function openDriverDetail(driverNum) {
-      savedContent  = $('content').innerHTML;
-      savedPrevView = { view, openRace };
+      pushHistory();
       openDriverNum = driverNum;
       view = 'driver-detail';
       renderHeader();
       loadDriverDetail(driverNum);
-    }
-
-    function backFromDriver() {
-      view    = savedPrevView.view;
-      openRace = savedPrevView.openRace;
-      openDriverNum = null;
-      renderHeader();
-      $('content').innerHTML = savedContent;
     }
 
     /* ── championship ──────────────────────────────── */
@@ -490,6 +494,7 @@
 
     /* ── race detail ───────────────────────────────── */
     function openRaceDetail(index) {
+      pushHistory();
       openRace = raceList[index];
       view = 'race-detail';
       renderHeader();
@@ -676,12 +681,16 @@
           const result   = resultBySession[session.session_key];
 
           html += `
-            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none
-                        ${upcoming ? 'opacity-35' : ''}">
+            <div class="tappable flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] last:border-none
+                        ${upcoming ? 'opacity-35' : ''}"
+                 onclick="openRaceDetail(${i})">
               <div class="w-7 text-center text-slate-500 text-xs tabular-nums">${i + 1}</div>
               <div class="flex-1 min-w-0">
                 <div class="text-sm text-white truncate">${flag(meeting.country_code)} ${meeting.meeting_name || meeting.circuit_short_name}</div>
                 <div class="text-[10px] text-slate-500 mt-0.5">${fmtDate(session.date_start)}</div>
+              </div>
+              <div class="w-3.5 text-slate-600 shrink-0">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
               </div>
               <div class="w-12 text-right">${posDisplay(upcoming ? null : result)}</div>
             </div>`;
