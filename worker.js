@@ -4,6 +4,12 @@
 // Edge-cachen er nøkkelen: OpenF1 rate-limiter (429) når mange forespørsler
 // kommer raskt. Ved å cache svarene på Cloudflares kant treffer gjentatte
 // kall (auto-oppdatering, retries, flere brukere) cachen i stedet for OpenF1.
+//
+// OpenF1 blokkerer anonym tilgang (401) mens en live-økt pågår. Har du en
+// API-nøkkel (https://openf1.org), legg den inn som en hemmelighet i Workeren:
+//   Worker → Settings → Variables → Add secret → navn: OPENF1_KEY
+// Da sender Workeren nøkkelen med hvert kall og live-blokkeringen forsvinner.
+// Uten nøkkel fungerer alt som før (utenom under live-økter).
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -28,7 +34,9 @@ export default {
     if (hit) return hit;
 
     const target = 'https://api.openf1.org' + url.pathname + url.search;
-    const upstream = await fetch(target, { headers: { 'User-Agent': 'F1-App/1.0' } });
+    const headers = { 'User-Agent': 'F1-App/1.0' };
+    if (env && env.OPENF1_KEY) headers['Authorization'] = `Bearer ${env.OPENF1_KEY}`;
+    const upstream = await fetch(target, { headers });
 
     const response = new Response(upstream.body, upstream);
     response.headers.set('Access-Control-Allow-Origin', '*');
