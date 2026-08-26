@@ -1,0 +1,44 @@
+name: Update F1 data
+
+# Henter F1-data ukentlig og committer data/f1-2026.json.
+# Kjører søndag 21:00 UTC (søndag kveld i Norge), altså etter at løpene
+# er ferdige — da er ingen live-økt aktiv og OpenF1 tillater anonym tilgang.
+# Kan også kjøres manuelt fra Actions-fanen (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: '0 21 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-f1-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch data
+        run: node scripts/fetch-f1-data.js
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/f1-2026.json
+          if git diff --staged --quiet; then
+            echo "Ingen endringer i dataene."
+          else
+            git commit -m "Update F1 2026 data"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

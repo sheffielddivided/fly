@@ -57,21 +57,45 @@
   </nav>
 
   <script>
-    /* ── API base — bytt til din Cloudflare Worker URL ── */
-    const API = 'https://rough-dust-2a76.batil-kjekken.workers.dev';
+    /* ── data ──────────────────────────────────────────
+       All data is pre-fetched once a week by a GitHub Actions cron job
+       (.github/workflows/update-f1-data.yml → scripts/fetch-f1-data.js)
+       and committed as a static JSON file. The app reads that single
+       same-origin file, so it never calls OpenF1 directly: instant to
+       load, no CORS, no rate limits, and immune to the live-session
+       lockout OpenF1 applies during race weekends. */
+    const DATA_URL = 'data/f1-2026.json';
+    let DATA = null;
+    let dataPromise = null;
 
-    async function apiFetch(url, attempt = 0) {
-      const res = await fetch(url);
-      // Only 429 is worth retrying. A 401 means OpenF1 has restricted anonymous
-      // access because a live session is in progress — that lasts for hours, so
-      // retrying is pointless; we fall back to cached data instead.
-      if (res.status === 429 && attempt < 2) {
-        await new Promise(r => setTimeout(r, (attempt + 1) * 1500));
-        return apiFetch(url, attempt + 1);
-      }
-      if (!res.ok) { const e = new Error(`HTTP ${res.status}`); e.status = res.status; throw e; }
-      return res.json();
+    async function ensureData() {
+      if (DATA) return DATA;
+      if (dataPromise) return dataPromise;
+      dataPromise = (async () => {
+        const res = await fetch(DATA_URL, { cache: 'no-cache' });
+        if (!res.ok) { const e = new Error(`HTTP ${res.status}`); e.status = res.status; throw e; }
+        const data = await res.json();
+
+        raceList = (data.races || [])
+          .map(r => ({ meeting: r.meeting, session: r.session }))
+          .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
+
+        (data.races || []).forEach(r => {
+          sessionResultCache[r.session.session_key] = Array.isArray(r.results) ? r.results : [];
+        });
+
+        driversLatest = Array.isArray(data.drivers) ? data.drivers : [];
+        DATA = data;
+        return DATA;
+      })();
+      try { return await dataPromise; }
+      catch (err) { dataPromise = null; throw err; } // allow a retry after failure
     }
+
+    // Thin accessors so the rest of the app stays unchanged.
+    async function ensureRaceList() { await ensureData(); }
+    async function getDriversLatest() { await ensureData(); return driversLatest; }
+    async function getSessionResult(cKey) { await ensureData(); return sessionResultCache[cKey] || []; }
 
     /* ── state ─────────────────────────────────────── */
     let view      = 'championship'; // championship | races | race-detail | driver-detail
@@ -83,68 +107,8 @@
     let token = 0;
 
     const driverCache = {}; // driver_number → { info, champEntry }
-    const sessionResultCache = {}; // session_key → final positions[]
+    const sessionResultCache = {}; // session_key → positions[]
     let driversLatest = null;
-
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-    async function getDriversLatest() {
-      if (driversLatest) return driversLatest;
-      try {
-        const arr = await apiFetch(`${API}/v1/drivers?session_key=latest`);
-        driversLatest = Array.isArray(arr) ? arr : [];
-        try { localStorage.setItem('f1drivers', JSON.stringify(driversLatest)); } catch {}
-      } catch (err) {
-        // During a live session the API 401s — fall back to the last known list.
-        try {
-          const c = localStorage.getItem('f1drivers');
-          driversLatest = c ? JSON.parse(c) : [];
-        } catch { driversLatest = []; }
-        if (!driversLatest.length) throw err;
-      }
-      return driversLatest;
-    }
-
-    // localStorage persistence — historical race results never change, so once
-    // fetched they can be reused across visits with zero network requests.
-    const LS_PREFIX = 'f1sr:';
-    function lsGet(cKey) {
-      try { const v = localStorage.getItem(LS_PREFIX + cKey); return v ? JSON.parse(v) : null; }
-      catch { return null; }
-    }
-    function lsSet(cKey, arr) {
-      try { localStorage.setItem(LS_PREFIX + cKey, JSON.stringify(arr)); } catch {}
-    }
-    function hasCachedResult(cKey) {
-      return !!sessionResultCache[cKey] || lsGet(cKey) !== null;
-    }
-
-    // Fetch a race's final classification.
-    //  - Results are cached in memory + localStorage once "final".
-    //  - A 404 (cancelled / no results) counts as an empty final result.
-    //  - For a race that isn't final yet, an empty result is NOT cached so it
-    //    keeps being retried until results are published.
-    async function getSessionResult(cKey, isFinal) {
-      if (sessionResultCache[cKey]) return sessionResultCache[cKey];
-      const stored = lsGet(cKey);
-      if (stored) { sessionResultCache[cKey] = stored; return stored; }
-
-      let arr = [];
-      try {
-        const res = await apiFetch(`${API}/v1/session_result?session_key=${cKey}`);
-        arr = Array.isArray(res) ? res : [];
-      } catch (err) {
-        // 404 => definitively no results. Any other error (e.g. 429) => leave
-        // uncached so a later load can retry once the API recovers.
-        if (err.status !== 404) return [];
-      }
-
-      if (arr.length || isFinal) {
-        sessionResultCache[cKey] = arr;
-        lsSet(cKey, arr);
-      }
-      return arr;
-    }
 
     /* ── helpers ───────────────────────────────────── */
     const $ = id => document.getElementById(id);
@@ -313,20 +277,8 @@
         driversArr.forEach(d => { dm[d.driver_number] = d; });
 
         const now = Date.now();
-        const SIX_H = 6 * 60 * 60 * 1000;
         const done = raceList.filter(r => new Date(r.session.date_start).getTime() < now);
-
-        const allResults = [];
-        for (const r of done) {
-          if (token !== t) return;
-          const cKey = r.session.session_key;
-          const started = new Date(r.session.date_start).getTime();
-          const wasCached = hasCachedResult(cKey);
-          allResults.push(await getSessionResult(cKey, now - started > SIX_H));
-          if (token !== t) return;
-          if (!wasCached) await sleep(500); // throttle cold-path calls to stay under the rate limit
-        }
-        if (token !== t) return;
+        const allResults = done.map(r => sessionResultCache[r.session.session_key] || []);
 
         const totals = {};
         allResults.forEach(results => {
@@ -385,52 +337,21 @@
 
         $('content').innerHTML = champCard(rows);
         const ts = $('ts');
-        if (ts) ts.innerHTML = `Oppdatert<br><span class="text-slate-400">${new Date().toLocaleTimeString('nb-NO')}</span>`;
+        if (ts && DATA?.updated) ts.innerHTML = `Oppdatert<br><span class="text-slate-400">${fmtDate(DATA.updated)}</span>`;
 
       } catch (err) {
         console.error(err);
         if (token !== t) return;
-        const live = err.status === 401;
         $('content').innerHTML = champCard(`
           <div class="p-12 text-center text-sm">
-            <div class="text-red-400 font-semibold mb-2">${live ? 'Live-økt pågår' : 'Kunne ikke hente data'}</div>
-            <div class="text-slate-500 mb-4">${live
-              ? 'OpenF1 begrenser tilgang til data mens et løp pågår. Prøv igjen når økten er ferdig.'
-              : 'API-en er kanskje midlertidig utilgjengelig'}</div>
+            <div class="text-red-400 font-semibold mb-2">Kunne ikke hente data</div>
+            <div class="text-slate-500 mb-4">Dataene er ikke tilgjengelige ennå. De oppdateres automatisk hver søndag kveld.</div>
             <button onclick="loadChampionship()" class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors">Prøv igjen</button>
           </div>`);
       }
     }
 
     /* ── race list ─────────────────────────────────── */
-    // The 2026 calendar barely changes, so it's cached in localStorage. If the
-    // API is temporarily unavailable (401/429/network) we fall back to the
-    // cached calendar instead of breaking the whole page.
-    const LS_CALENDAR = 'f1cal:2026';
-
-    async function ensureRaceList() {
-      if (raceList) return;
-      try {
-        const [meetings, sessions] = await Promise.all([
-          apiFetch(`${API}/v1/meetings?year=2026`),
-          apiFetch(`${API}/v1/sessions?year=2026&session_type=Race`),
-        ]);
-        const byMeeting = {};
-        sessions.forEach(s => { byMeeting[s.meeting_key] = s; });
-        raceList = meetings
-          .filter(m => byMeeting[m.meeting_key])
-          .map(m => ({ meeting: m, session: byMeeting[m.meeting_key] }))
-          .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
-        try { localStorage.setItem(LS_CALENDAR, JSON.stringify(raceList)); } catch {}
-      } catch (err) {
-        try {
-          const cached = localStorage.getItem(LS_CALENDAR);
-          if (cached) { raceList = JSON.parse(cached); return; }
-        } catch {}
-        throw err;
-      }
-    }
-
     async function loadRaceList() {
       const t = ++token;
       $('content').innerHTML = `<div class="flex flex-col gap-2">${skeletons(8, 'h-[68px]')}</div>`;
@@ -523,11 +444,10 @@
 
       try {
         const cKey = session.session_key;
-        const isFinal = (now - start) > 6 * 60 * 60 * 1000;
 
         const [driversArr, rawPositions] = await Promise.all([
           getDriversLatest(),
-          getSessionResult(cKey, isFinal),
+          getSessionResult(cKey),
         ]);
         if (token !== t) return;
 
@@ -546,15 +466,6 @@
             <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center">
               <div class="text-slate-400 text-sm">Ingen resultater tilgjengelig — løpet kan ha blitt kansellert eller utsatt.</div>
             </div>`;
-          // Only keep polling for a recent race whose results may still be
-          // published; a final race with no results is cancelled — don't retry.
-          if (!isFinal) {
-            setTimeout(() => {
-              if (view === 'race-detail' && openRace?.session.session_key === session.session_key) {
-                loadRaceDetail({ meeting, session });
-              }
-            }, 60_000);
-          }
           return;
         }
 
@@ -598,7 +509,7 @@
         $('content').innerHTML = `
           <div class="rounded-2xl border border-white/[0.07] bg-slate-900/60 p-12 text-center text-sm shadow-2xl">
             <div class="text-red-400 font-semibold mb-2">Kunne ikke hente resultater</div>
-            <div class="text-slate-500 mb-4">API-en er kanskje midlertidig utilgjengelig</div>
+            <div class="text-slate-500 mb-4">Dataene er kanskje ikke tilgjengelige ennå</div>
             <button onclick="loadRaceDetail(openRace)" class="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors">Prøv igjen</button>
           </div>`;
       }
@@ -610,23 +521,18 @@
       $('content').innerHTML = `<div class="flex flex-col gap-3">${skeletons(1,'h-44')}${skeletons(10)}</div>`;
 
       try {
-        await ensureRaceList();
+        await getDriversLatest();
         if (token !== t) return;
 
-        const allResults = await apiFetch(`${API}/v1/session_result?driver_number=${driverNum}`);
-        if (token !== t) return;
-
-        if (!Array.isArray(allResults)) throw new Error('Uventet API-svar');
-
-        // Filter to 2026 race session_keys
-        const raceSessionKeys = new Set(raceList.map(r => r.session.session_key));
+        // Build the driver's race-by-race results from the static data.
         const resultBySession = {};
-        allResults.forEach(r => {
-          if (raceSessionKeys.has(r.session_key)) resultBySession[r.session_key] = r;
+        raceList.forEach(({ session }) => {
+          const hit = (sessionResultCache[session.session_key] || []).find(x => x.driver_number === driverNum);
+          if (hit) resultBySession[session.session_key] = hit;
         });
 
         const cached = driverCache[driverNum] || {};
-        const d      = cached.info || {};
+        const d      = cached.info || driversLatest.find(x => x.driver_number === driverNum) || {};
         const champ  = cached.champEntry || null;
         const tc     = d.team_colour ? `#${d.team_colour}` : '#475569';
 
@@ -713,18 +619,6 @@
     /* ── init ──────────────────────────────────────── */
     renderHeader();
     loadChampionship();
-
-    // Only auto-refresh when a race is live or just finished — otherwise the
-    // standings are static and there's nothing new to fetch.
-    setInterval(() => {
-      if (view !== 'championship' || !raceList) return;
-      const now = Date.now();
-      const active = raceList.some(r => {
-        const s = new Date(r.session.date_start).getTime();
-        return now - s > -60 * 60 * 1000 && now - s < 4 * 60 * 60 * 1000;
-      });
-      if (active) loadChampionship(true);
-    }, 60_000);
   </script>
 </body>
 </html>
