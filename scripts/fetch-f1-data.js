@@ -86,7 +86,14 @@ async function main() {
     .sort((a, b) => new Date(a.session.date_start) - new Date(b.session.date_start));
 
   const now = Date.now();
-  const out = { updated: new Date().toISOString(), drivers: drivers.map(pickDriver), races: [] };
+
+  // Førere fra "latest"-økten først (gir gjeldende lag/farge for aktive
+  // førere). Erstattere/engangskjørere som ikke er i den lista fylles inn
+  // per løp under, så alle som har kjørt får navnet sitt.
+  const driverMap = {};
+  drivers.forEach((d) => { driverMap[d.driver_number] = pickDriver(d); });
+
+  const out = { updated: new Date().toISOString(), drivers: [], races: [] };
 
   for (const r of races) {
     const started = new Date(r.session.date_start).getTime() < now;
@@ -94,8 +101,18 @@ async function main() {
     if (started) {
       const raw = await api(`/session_result?session_key=${r.session.session_key}`);
       results = (Array.isArray(raw) ? raw : []).map(pickResult);
-      console.log(`  ${r.meeting.meeting_name}: ${results.length} resultater`);
       await sleep(800); // vær snill mot OpenF1 mellom kall
+
+      // Fyll inn førere som kjørte dette løpet, men mangler i "latest"-lista.
+      const missing = results.some((x) => x.driver_number != null && !driverMap[x.driver_number]);
+      if (missing) {
+        const sd = await api(`/drivers?session_key=${r.session.session_key}`);
+        (Array.isArray(sd) ? sd : []).forEach((d) => {
+          if (!driverMap[d.driver_number]) driverMap[d.driver_number] = pickDriver(d);
+        });
+        await sleep(800);
+      }
+      console.log(`  ${r.meeting.meeting_name}: ${results.length} resultater`);
     } else {
       console.log(`  ${r.meeting.meeting_name}: ikke kjørt ennå`);
     }
@@ -105,6 +122,8 @@ async function main() {
       results,
     });
   }
+
+  out.drivers = Object.values(driverMap).sort((a, b) => a.driver_number - b.driver_number);
 
   fs.mkdirSync('data', { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(out) + '\n');
