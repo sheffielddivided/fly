@@ -1,13 +1,14 @@
 name: Update F1 data
 
 # Henter F1-data ukentlig og committer data/f1-2026.json.
-# Kjører søndag 21:00 UTC (søndag kveld i Norge), altså etter at løpene
+# Kjører søndag 21:17 UTC (søndag kveld i Norge), altså etter at løpene
 # er ferdige — da er ingen live-økt aktiv og OpenF1 tillater anonym tilgang.
-# Kan også kjøres manuelt fra Actions-fanen (workflow_dispatch).
+# Merk: minuttet er bevisst IKKE 0 — GitHub dropper ofte planlagte kjøringer
+# satt til «hel time» fordi det er mest overbelastet. Kan også kjøres manuelt.
 
 on:
   schedule:
-    - cron: '0 21 * * 0'
+    - cron: '17 21 * * 0'
   workflow_dispatch:
 
 permissions:
